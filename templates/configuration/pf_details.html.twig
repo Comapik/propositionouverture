@@ -1,135 +1,252 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Configuration Portes/Fenêtres - Configuration complète{% endblock %}
+{% block title %}Configuration des détails - {{ parent() }}{% endblock %}
 
 {% block body %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-10 mx-auto">
-            <div class="card shadow">
+            <div class="card">
                 <div class="card-header bg-success text-white">
                     <h4 class="mb-0">
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        Configuration Portes/Fenêtres - Résumé
+                        <i class="bi bi-gear me-2"></i>
+                        Configuration finale
                     </h4>
                 </div>
                 <div class="card-body">
-                    <div class="mb-4">
-                        <h5 class="text-muted">Projet : {{ projet.refClient }}</h5>
-                        <p class="text-muted">{{ projet.description }}</p>
+                    <!-- Breadcrumb de progression -->
+                    <nav aria-label="breadcrumb" class="mb-4">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ path('app_projet_show', {id: projet.id}) }}">{{ projet.refClient }}</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <span class="badge bg-success">{{ produit.nom }}</span>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <span class="badge bg-success">{{ categorie.nom }}</span>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <span class="badge bg-success">{{ sousCategorie.nom }}</span>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">
+                                <i class="bi bi-gear me-1"></i>Configuration
+                            </li>
+                        </ol>
+                    </nav>
+
+                    <!-- Résumé de la sélection -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-success">
+                                <h5 class="alert-heading mb-3">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    Configuration sélectionnée
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-2">
+                                            <i class="bi bi-box me-1"></i> 
+                                            <strong>Produit :</strong> {{ produit.nom }}
+                                        </p>
+                                        <p class="mb-2">
+                                            <i class="bi bi-tag me-1"></i> 
+                                            <strong>Catégorie :</strong> {{ categorie.nom }}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-2">
+                                            <i class="bi bi-tags me-1"></i> 
+                                            <strong>Sous-catégorie :</strong> {{ sousCategorie.nom }}
+                                        </p>
+                                        {% if confpf.ouverture %}
+                                            <p class="mb-0">
+                                                <i class="bi bi-door-open me-1"></i> 
+                                                <strong>Ouverture :</strong> {{ confpf.ouverture.nom }}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="alert alert-success">
-                        <h5 class="alert-heading">
-                            <i class="bi bi-check-circle-fill me-2"></i>
-                            Configuration enregistrée !
-                        </h5>
-                        <p class="mb-0">Voici le résumé de votre sélection :</p>
-                    </div>
-
+                    <!-- Formulaire de configuration -->
                     <div class="row">
-                        <div class="col-md-4">
-                            <div class="card border-primary">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-box-seam text-primary" style="font-size: 3rem;"></i>
-                                    <h6 class="card-title mt-3">Produit</h6>
-                                    <p class="card-text">
-                                        <strong>{{ produit.nom }}</strong>
-                                    </p>
+                        <div class="col-12">
+                            <h5 class="mb-4">
+                                <i class="bi bi-list-check me-2"></i>
+                                Spécifications techniques
+                            </h5>
+                            
+                            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-group">
+                                        {{ form_label(form.quantite) }}
+                                        {{ form_widget(form.quantite) }}
+                                        {% if form.quantite.vars.help %}
+                                            <small class="form-text text-muted">{{ form.quantite.vars.help }}</small>
+                                        {% endif %}
+                                        {{ form_errors(form.quantite) }}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-group">
+                                        {{ form_label(form.largeur) }}
+                                        <div class="input-group">
+                                            {{ form_widget(form.largeur) }}
+                                            <span class="input-group-text">mm</span>
+                                        </div>
+                                        {% if form.largeur.vars.help %}
+                                            <small class="form-text text-muted">{{ form.largeur.vars.help }}</small>
+                                        {% endif %}
+                                        {{ form_errors(form.largeur) }}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-group">
+                                        {{ form_label(form.hauteur) }}
+                                        <div class="input-group">
+                                            {{ form_widget(form.hauteur) }}
+                                            <span class="input-group-text">mm</span>
+                                        </div>
+                                        {% if form.hauteur.vars.help %}
+                                            <small class="form-text text-muted">{{ form.hauteur.vars.help }}</small>
+                                        {% endif %}
+                                        {{ form_errors(form.hauteur) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="form-group">
+                                        {{ form_label(form.position) }}
+                                        {{ form_widget(form.position) }}
+                                        {% if form.position.vars.help %}
+                                            <small class="form-text text-muted">{{ form.position.vars.help }}</small>
+                                        {% endif %}
+                                        {{ form_errors(form.position) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="form-group">
+                                        {{ form_label(form.fournisseur) }}
+                                        {{ form_widget(form.fournisseur) }}
+                                        {% if form.fournisseur.vars.help %}
+                                            <small class="form-text text-muted">{{ form.fournisseur.vars.help }}</small>
+                                        {% endif %}
+                                        {{ form_errors(form.fournisseur) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="form-group">
+                                        {{ form_label(form.systeme) }}
+                                        {{ form_widget(form.systeme) }}
+                                        {% if form.systeme.vars.help %}
+                                            <small class="form-text text-muted">{{ form.systeme.vars.help }}</small>
+                                        {% endif %}
+                                        {{ form_errors(form.systeme) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ path('app_configuration_pf_ouverture', {projet: projet.id, confpf: confpf.id}) }}" 
+                                   class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left me-1"></i>Retour aux ouvertures
+                                </a>
+                                
+                                <div>
+                                    <a href="{{ path('app_projet_show', {id: projet.id}) }}" 
+                                       class="btn btn-outline-primary me-2">
+                                        Annuler
+                                    </a>
+                                    {{ form_widget(form.submit) }}
                                 </div>
                             </div>
                         </div>
-                        
-                        {% if categorie %}
-                        <div class="col-md-4">
-                            <div class="card border-info">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-folder text-info" style="font-size: 3rem;"></i>
-                                    <h6 class="card-title mt-3">Catégorie</h6>
-                                    <p class="card-text">
-                                        <strong>{{ categorie.nom }}</strong>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        {% if sousCategorie %}
-                        <div class="col-md-4">
-                            <div class="card border-success">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-folder-fill text-success" style="font-size: 3rem;"></i>
-                                    <h6 class="card-title mt-3">Sous-catégorie</h6>
-                                    <p class="card-text">
-                                        <strong>{{ sousCategorie.nom }}</strong>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
-
-                    <div class="alert alert-info mt-4">
-                        <h6 class="alert-heading">
-                            <i class="bi bi-tools me-2"></i>
-                            Prochaines étapes
-                        </h6>
-                        <p class="mb-0">
-                            La configuration de base est terminée. Vous pourrez maintenant ajouter les détails comme :
-                        </p>
-                        <ul class="mt-2 mb-0">
-                            <li>Dimensions (largeur, hauteur)</li>
-                            <li>Quantité</li>
-                            <li>Prix et calculs</li>
-                            <li>Notes spécifiques</li>
-                        </ul>
-                    </div>
-
-                    <div class="d-flex justify-content-between mt-4">
-                        {% if sousCategorie %}
-                            <a href="{{ path('app_configuration_pf_subcategory', {'projet': projet.id, 'confpf': confpf.id}) }}" 
-                               class="btn btn-secondary">
-                                <i class="bi bi-arrow-left me-2"></i>
-                                Modifier la sous-catégorie
-                            </a>
-                        {% elseif categorie %}
-                            <a href="{{ path('app_configuration_pf_category', {'projet': projet.id, 'confpf': confpf.id}) }}" 
-                               class="btn btn-secondary">
-                                <i class="bi bi-arrow-left me-2"></i>
-                                Modifier la catégorie
-                            </a>
-                        {% else %}
-                            <a href="{{ path('app_configuration_pf', {'projet': projet.id}) }}" 
-                               class="btn btn-secondary">
-                                <i class="bi bi-arrow-left me-2"></i>
-                                Modifier le produit
-                            </a>
-                        {% endif %}
-                        
-                        <a href="{{ path('app_projet_show', {'id': projet.id}) }}" 
-                           class="btn btn-primary">
-                            <i class="bi bi-house me-2"></i>
-                            Retour au projet
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Progress indicator -->
-            <div class="card mt-3 border-0">
-                <div class="card-body py-2">
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
-                    </div>
-                    <div class="d-flex justify-content-between mt-2">
-                        <small class="text-success fw-bold">✓ Produit</small>
-                        <small class="text-success fw-bold">✓ Catégorie</small>
-                        <small class="text-success fw-bold">✓ Sous-catégorie</small>
-                        <small class="text-success fw-bold">✓ Configuration</small>
-                    </div>
+                    
+                    {{ form_end(form) }}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Gestion de la sélection dépendante fournisseur -> système
+document.addEventListener('DOMContentLoaded', function() {
+    const fournisseurSelect = document.querySelector('[data-fournisseur-select]');
+    const systemeSelect = document.querySelector('[data-systeme-select]');
+    
+    // Gestion de la sélection dépendante fournisseur -> système
+    if (fournisseurSelect && systemeSelect) {
+        fournisseurSelect.addEventListener('change', function() {
+            const fournisseurId = this.value;
+            
+            if (!fournisseurId) {
+                // Réinitialiser la liste des systèmes
+                systemeSelect.innerHTML = '<option value="">Sélectionner un système...</option>';
+                systemeSelect.disabled = true;
+                return;
+            }
+            
+            // Afficher le chargement
+            systemeSelect.innerHTML = '<option value="">Chargement...</option>';
+            systemeSelect.disabled = true;
+            
+            // Appel AJAX pour récupérer les systèmes du fournisseur
+            fetch(`{{ path('app_api_systemes_by_fournisseur', {fournisseur: '__FOURNISSEUR_ID__'}) }}`.replace('__FOURNISSEUR_ID__', fournisseurId))
+                .then(response => response.json())
+                .then(systemes => {
+                    systemeSelect.innerHTML = '<option value="">Sélectionner un système...</option>';
+                    
+                    systemes.forEach(systeme => {
+                        const option = document.createElement('option');
+                        option.value = systeme.id;
+                        option.textContent = systeme.nom;
+                        if (systeme.description) {
+                            option.title = systeme.description;
+                        }
+                        systemeSelect.appendChild(option);
+                    });
+                    
+                    systemeSelect.disabled = false;
+                    
+                    // Message informatif
+                    const formGroup = systemeSelect.closest('.form-group') || systemeSelect.closest('.mb-3');
+                    if (formGroup) {
+                        let infoDiv = formGroup.querySelector('.systeme-info');
+                        if (infoDiv) {
+                            infoDiv.remove();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des systèmes:', error);
+                    systemeSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+                    systemeSelect.disabled = true;
+                });
+        });
+    }
+});
+</script>
 {% endblock %}

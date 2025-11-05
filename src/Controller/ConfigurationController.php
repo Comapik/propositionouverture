@@ -7,11 +7,14 @@ namespace App\Controller;
 use App\Entity\Projet;
 use App\Entity\Produit;
 use App\Entity\ConfPf;
+use App\Entity\Fournisseur;
 use App\Form\ProductSelectionType;
+use App\Form\ConfPfDetailsType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 
@@ -200,9 +203,8 @@ class ConfigurationController extends AbstractController
                     ->find($ouvertureId);
                 
                 if ($ouverture) {
-                    // Note: We'll need to add an ouverture field to ConfPf entity later
-                    // For now, we'll store it in notes or add the field
-                    $confPf->setNotes($confPf->getNotes() . "\nOuverture: " . $ouverture->getNom());
+                    // Sauvegarder l'ouverture directement dans la relation
+                    $confPf->setOuverture($ouverture);
                     $this->entityManager->flush();
                     
                     $this->addFlash('success', 'Ouverture sélectionnée : ' . $ouverture->getNom());
@@ -234,13 +236,64 @@ class ConfigurationController extends AbstractController
         #[MapEntity(mapping: ['confpf' => 'id'])] ConfPf $confPf,
         Request $request
     ): Response {
+        // Vérifier que toutes les étapes précédentes sont complètes
+        if (!$confPf->getProduit() || !$confPf->getCategorie() || !$confPf->getSousCategorie()) {
+            $this->addFlash('error', 'Configuration incomplète. Veuillez recommencer le processus.');
+            return $this->redirectToRoute('app_configuration_pf', ['projet' => $projet->getId()]);
+        }
+
+        // Récupérer les fournisseurs pour le produit sélectionné
+        $fournisseurs = [];
+        if ($confPf->getProduit()) {
+            $fournisseurs = $this->entityManager->getRepository(\App\Entity\Fournisseur::class)
+                ->findByProduit($confPf->getProduit()->getId());
+        }
+
+        $form = $this->createForm(ConfPfDetailsType::class, $confPf, [
+            'fournisseurs' => $fournisseurs,
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Mettre à jour les timestamps
+            if (method_exists($confPf, 'setUpdatedAt')) {
+                $confPf->setUpdatedAt(new \DateTimeImmutable());
+            }
+            
+            $this->entityManager->flush();
+            
+            $this->addFlash('success', 'Configuration enregistrée avec succès !');
+            
+            // Rediriger vers les détails du projet
+            return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+        }
+
         return $this->render('configuration/pf_details.html.twig', [
             'projet' => $projet,
             'confpf' => $confPf,
             'produit' => $confPf->getProduit(),
             'categorie' => $confPf->getCategorie(),
             'sousCategorie' => $confPf->getSousCategorie(),
+            'form' => $form,
         ]);
+    }
+
+    #[Route('/api/systemes/{fournisseur}', name: 'app_api_systemes_by_fournisseur', methods: ['GET'])]
+    public function getSystemesByFournisseur(Fournisseur $fournisseur): JsonResponse
+    {
+        $systemes = $this->entityManager->getRepository(\App\Entity\Systeme::class)
+            ->findByFournisseur($fournisseur);
+        
+        $data = [];
+        foreach ($systemes as $systeme) {
+            $data[] = [
+                'id' => $systeme->getId(),
+                'nom' => $systeme->getNom(),
+                'description' => $systeme->getDescription(),
+            ];
+        }
+        
+        return new JsonResponse($data);
     }
 
     #[Route('/volet/{projet}', name: 'app_configuration_volet', methods: ['GET', 'POST'])]

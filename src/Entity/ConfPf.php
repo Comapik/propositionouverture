@@ -41,6 +41,15 @@ class ConfPf
     #[ORM\ManyToOne]
     private ?SousCategorie $sousCategorie = null;
 
+    #[ORM\ManyToOne]
+    private ?Ouverture $ouverture = null;
+
+    #[ORM\ManyToOne]
+    private ?Fournisseur $fournisseur = null;
+
+    #[ORM\ManyToOne(inversedBy: 'confPfs')]
+    private ?Systeme $systeme = null;
+
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $largeur = null;
 
@@ -50,14 +59,12 @@ class ConfPf
     #[ORM\Column(nullable: true)]
     private ?int $quantite = null;
 
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
-    private ?string $prixUnitaire = null;
-
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
-    private ?string $prixTotal = null;
-
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notes = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255, maxMessage: 'La position ne peut pas dépasser {{ limit }} caractères')]
+    private ?string $position = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
@@ -119,6 +126,28 @@ class ConfPf
         return $this;
     }
 
+    public function getOuverture(): ?Ouverture
+    {
+        return $this->ouverture;
+    }
+
+    public function setOuverture(?Ouverture $ouverture): static
+    {
+        $this->ouverture = $ouverture;
+        return $this;
+    }
+
+    public function getFournisseur(): ?Fournisseur
+    {
+        return $this->fournisseur;
+    }
+
+    public function setFournisseur(?Fournisseur $fournisseur): static
+    {
+        $this->fournisseur = $fournisseur;
+        return $this;
+    }
+
     public function getLargeur(): ?string
     {
         return $this->largeur;
@@ -152,28 +181,6 @@ class ConfPf
         return $this;
     }
 
-    public function getPrixUnitaire(): ?string
-    {
-        return $this->prixUnitaire;
-    }
-
-    public function setPrixUnitaire(?string $prixUnitaire): static
-    {
-        $this->prixUnitaire = $prixUnitaire;
-        return $this;
-    }
-
-    public function getPrixTotal(): ?string
-    {
-        return $this->prixTotal;
-    }
-
-    public function setPrixTotal(?string $prixTotal): static
-    {
-        $this->prixTotal = $prixTotal;
-        return $this;
-    }
-
     public function getNotes(): ?string
     {
         return $this->notes;
@@ -204,6 +211,28 @@ class ConfPf
     public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
+        return $this;
+    }
+
+    public function getPosition(): ?string
+    {
+        return $this->position;
+    }
+
+    public function setPosition(?string $position): static
+    {
+        $this->position = $position;
+        return $this;
+    }
+
+    public function getSysteme(): ?Systeme
+    {
+        return $this->systeme;
+    }
+
+    public function setSysteme(?Systeme $systeme): static
+    {
+        $this->systeme = $systeme;
         return $this;
     }
 }
