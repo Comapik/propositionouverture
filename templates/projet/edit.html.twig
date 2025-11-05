@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier le Projet{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h4 mb-0">
+                        <i class="bi bi-pencil"></i>
+                        Modifier le Projet #{{ projet.id }}
+                    </h1>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form_row(form.refClient) }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form_row(form.lieu) }}
+                        </div>
+                    </div>
+                    
+                    <!-- Section Client -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person-plus"></i>
+                                Informations Client
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                {{ form_row(form.clientChoice) }}
+                            </div>
+                            
+                            <div id="existing-client-section" class="mb-3">
+                                {{ form_row(form.client) }}
+                            </div>
+                            
+                            <div id="new-client-section" class="mb-3" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>Nouveau client :</strong> Remplissez les informations ci-dessous pour créer un nouveau client.
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        {{ form_row(form.newClient.nom) }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {{ form_row(form.newClient.email) }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {{ form_row(form.newClient.tel) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form_row(form.description) }}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('app_projet_show', {id: projet.id}) }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Sauvegarder
+                        </button>
+                    </div>
+                    
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clientChoiceRadios = document.querySelectorAll('input[name="projet[clientChoice]"]');
+    const existingClientSection = document.getElementById('existing-client-section');
+    const newClientSection = document.getElementById('new-client-section');
+    const clientSelect = document.querySelector('select[name="projet[client]"]');
+    const newClientNom = document.querySelector('input[name="projet[newClient][nom]"]');
+    
+    function toggleClientSections() {
+        const selectedValue = document.querySelector('input[name="projet[clientChoice]"]:checked').value;
+        
+        if (selectedValue === 'existing') {
+            existingClientSection.style.display = 'block';
+            newClientSection.style.display = 'none';
+            
+            if (clientSelect) clientSelect.required = false;
+            if (newClientNom) newClientNom.required = false;
+        } else if (selectedValue === 'new') {
+            existingClientSection.style.display = 'none';
+            newClientSection.style.display = 'block';
+            
+            if (clientSelect) clientSelect.required = false;
+            if (newClientNom) newClientNom.required = true;
+        }
+    }
+    
+    // Initialiser l'affichage
+    toggleClientSections();
+    
+    // Écouter les changements
+    clientChoiceRadios.forEach(radio => {
+        radio.addEventListener('change', toggleClientSections);
+    });
+});
+</script>
+{% endblock %}

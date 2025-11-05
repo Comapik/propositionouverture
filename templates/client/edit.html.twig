@@ -1,0 +1,168 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier {{ client.nom }} - Client{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <!-- En-tête -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>
+                    Modifier le client
+                </h1>
+                <a href="{{ path('app_client_show', {'id': client.id}) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Annuler
+                </a>
+            </div>
+
+            <!-- Informations actuelles -->
+            <div class="alert alert-info mb-4">
+                <div class="d-flex align-items-center">
+                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                        {{ client.nom|slice(0,1)|upper }}
+                    </div>
+                    <div>
+                        <strong>Client actuel :</strong> {{ client.nom }}
+                        {% if client.email %}
+                            <br><small class="text-muted">{{ client.email }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulaire de modification -->
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-person-gear me-2"></i>
+                        Informations du client
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        
+                        <div class="mb-3">
+                            {{ form_label(form.nom, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.nom, {'attr': {'class': 'form-control form-control-lg'}}) }}
+                            {{ form_errors(form.nom) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.email, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.email) }}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                L'email est optionnel mais recommandé pour les communications.
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form_label(form.tel, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.tel, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.tel) }}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Le téléphone est optionnel mais utile pour les contacts urgents.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <a href="{{ path('app_client_show', {'id': client.id}) }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Annuler
+                            </a>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Enregistrer les modifications
+                            </button>
+                        </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <!-- Informations sur les projets associés -->
+            {% if client.projets|length > 0 %}
+                <div class="card border-warning mt-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Attention
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">
+                            Ce client a <strong>{{ client.projets|length }} projet{{ client.projets|length > 1 ? 's' : '' }}</strong> associé{{ client.projets|length > 1 ? 's' : '' }}.
+                            Les modifications apportées au nom du client seront visibles dans tous les projets associés.
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Navigation -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ path('app_client_index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-list me-2"></i>
+                    Liste des clients
+                </a>
+                <a href="{{ path('app_client_show', {'id': client.id}) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-eye me-2"></i>
+                    Voir le client
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-sm {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.needs-validation .form-control:invalid {
+    border-color: #dc3545;
+}
+
+.needs-validation .form-control:valid {
+    border-color: #28a745;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    // Real-time validation feedback
+    const inputs = form.querySelectorAll('input[required]');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value.trim() !== '') {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

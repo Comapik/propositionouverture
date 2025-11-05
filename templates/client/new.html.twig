@@ -1,0 +1,177 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau client{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <!-- En-tête -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="bi bi-person-plus text-primary me-2"></i>
+                    Nouveau client
+                </h1>
+                <a href="{{ path('app_client_index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Retour à la liste
+                </a>
+            </div>
+
+            <!-- Information -->
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                Créez un nouveau client pour pouvoir lui associer des projets de menuiserie.
+            </div>
+
+            <!-- Formulaire de création -->
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-person-gear me-2"></i>
+                        Informations du client
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        
+                        <div class="mb-3">
+                            {{ form_label(form.nom, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.nom, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Ex: Dupont Jean'}}) }}
+                            {{ form_errors(form.nom) }}
+                            <div class="form-text">
+                                <i class="bi bi-asterisk text-danger me-1"></i>
+                                Champ obligatoire
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.email, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.email, {'attr': {'class': 'form-control', 'placeholder': 'Ex: jean.dupont@email.com'}}) }}
+                            {{ form_errors(form.email) }}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                L'email est optionnel mais recommandé pour les communications.
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form_label(form.tel, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                            {{ form_widget(form.tel, {'attr': {'class': 'form-control', 'placeholder': 'Ex: 01 23 45 67 89'}}) }}
+                            {{ form_errors(form.tel) }}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Le téléphone est optionnel mais utile pour les contacts urgents.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <a href="{{ path('app_client_index') }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Annuler
+                            </a>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Créer le client
+                            </button>
+                        </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <!-- Étapes suivantes -->
+            <div class="card border-success mt-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        Prochaines étapes
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li>Créer le client</li>
+                        <li>Créer un projet pour ce client</li>
+                        <li>Configurer les portes/fenêtres ou volets</li>
+                        <li>Générer le devis</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ path('app_client_index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-list me-2"></i>
+                    Liste des clients
+                </a>
+                <a href="{{ path('app_projet_new') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-folder-plus me-2"></i>
+                    Nouveau projet
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.needs-validation .form-control:invalid {
+    border-color: #dc3545;
+}
+
+.needs-validation .form-control:valid {
+    border-color: #28a745;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    // Real-time validation feedback
+    const nomInput = form.querySelector('input[name="client[nom]"]');
+    const emailInput = form.querySelector('input[name="client[email]"]');
+    
+    if (nomInput) {
+        nomInput.addEventListener('input', function() {
+            if (this.value.trim().length >= 2) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else if (this.value.trim().length > 0) {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            } else {
+                this.classList.remove('is-valid', 'is-invalid');
+            }
+        });
+    }
+    
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            if (this.value.trim() === '' || this.checkValidity()) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

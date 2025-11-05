@@ -1,0 +1,135 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configuration Portes/Fenêtres - Configuration complète{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Configuration Portes/Fenêtres - Résumé
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5 class="text-muted">Projet : {{ projet.refClient }}</h5>
+                        <p class="text-muted">{{ projet.description }}</p>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <h5 class="alert-heading">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Configuration enregistrée !
+                        </h5>
+                        <p class="mb-0">Voici le résumé de votre sélection :</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-box-seam text-primary" style="font-size: 3rem;"></i>
+                                    <h6 class="card-title mt-3">Produit</h6>
+                                    <p class="card-text">
+                                        <strong>{{ produit.nom }}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if categorie %}
+                        <div class="col-md-4">
+                            <div class="card border-info">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-folder text-info" style="font-size: 3rem;"></i>
+                                    <h6 class="card-title mt-3">Catégorie</h6>
+                                    <p class="card-text">
+                                        <strong>{{ categorie.nom }}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if sousCategorie %}
+                        <div class="col-md-4">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-folder-fill text-success" style="font-size: 3rem;"></i>
+                                    <h6 class="card-title mt-3">Sous-catégorie</h6>
+                                    <p class="card-text">
+                                        <strong>{{ sousCategorie.nom }}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-info mt-4">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-tools me-2"></i>
+                            Prochaines étapes
+                        </h6>
+                        <p class="mb-0">
+                            La configuration de base est terminée. Vous pourrez maintenant ajouter les détails comme :
+                        </p>
+                        <ul class="mt-2 mb-0">
+                            <li>Dimensions (largeur, hauteur)</li>
+                            <li>Quantité</li>
+                            <li>Prix et calculs</li>
+                            <li>Notes spécifiques</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        {% if sousCategorie %}
+                            <a href="{{ path('app_configuration_pf_subcategory', {'projet': projet.id, 'confpf': confpf.id}) }}" 
+                               class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Modifier la sous-catégorie
+                            </a>
+                        {% elseif categorie %}
+                            <a href="{{ path('app_configuration_pf_category', {'projet': projet.id, 'confpf': confpf.id}) }}" 
+                               class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Modifier la catégorie
+                            </a>
+                        {% else %}
+                            <a href="{{ path('app_configuration_pf', {'projet': projet.id}) }}" 
+                               class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Modifier le produit
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{{ path('app_projet_show', {'id': projet.id}) }}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-house me-2"></i>
+                            Retour au projet
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress indicator -->
+            <div class="card mt-3 border-0">
+                <div class="card-body py-2">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-success fw-bold">✓ Produit</small>
+                        <small class="text-success fw-bold">✓ Catégorie</small>
+                        <small class="text-success fw-bold">✓ Sous-catégorie</small>
+                        <small class="text-success fw-bold">✓ Configuration</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

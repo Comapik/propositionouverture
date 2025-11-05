@@ -1,0 +1,179 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Choisir la Configuration - Projet {{ projet.refClient }}{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Informations du projet -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-check-circle"></i>
+                        Projet créé avec succès !
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Référence Client</h6>
+                            <p class="h5">{{ projet.refClient }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Client</h6>
+                            <p class="h6">
+                                {% if projet.client %}
+                                    {{ projet.client.nom }}
+                                {% else %}
+                                    <span class="text-muted">Aucun client</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% if projet.description %}
+                        <div class="mt-3">
+                            <h6 class="text-muted">Description</h6>
+                            <p>{{ projet.description }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Choix de configuration -->
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-gear"></i>
+                        Choisir le type de configuration
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead mb-4">
+                        Maintenant que votre projet est créé, vous pouvez choisir le type de configuration à effectuer :
+                    </p>
+
+                    <form method="post">
+                        <div class="row g-4">
+                            <!-- Configuration Portes/Fenêtres -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-primary config-option" data-config="conf_pf">
+                                    <div class="card-body text-center p-4">
+                                        <div class="mb-3">
+                                            <i class="bi bi-window text-primary" style="font-size: 3rem;"></i>
+                                        </div>
+                                        <h5 class="card-title text-primary">Portes & Fenêtres</h5>
+                                        <p class="card-text">
+                                            Configurer les portes et fenêtres du projet :
+                                        </p>
+                                        <ul class="list-unstyled text-start">
+                                            <li><i class="bi bi-check text-success"></i> Types d'ouverture</li>
+                                            <li><i class="bi bi-check text-success"></i> Matériaux</li>
+                                            <li><i class="bi bi-check text-success"></i> Vitrages</li>
+                                            <li><i class="bi bi-check text-success"></i> Couleurs intérieur/extérieur</li>
+                                            <li><i class="bi bi-check text-success"></i> Dimensions</li>
+                                            <li><i class="bi bi-check text-success"></i> Options diverses</li>
+                                        </ul>
+                                        <button type="submit" name="config_type" value="conf_pf" class="btn btn-primary btn-lg w-100 mt-3">
+                                            <i class="bi bi-arrow-right"></i>
+                                            Configurer Portes/Fenêtres
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Configuration Volets -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-info config-option" data-config="conf_volet">
+                                    <div class="card-body text-center p-4">
+                                        <div class="mb-3">
+                                            <i class="bi bi-house-door text-info" style="font-size: 3rem;"></i>
+                                        </div>
+                                        <h5 class="card-title text-info">Volets Roulants</h5>
+                                        <p class="card-text">
+                                            Configurer les volets roulants du projet :
+                                        </p>
+                                        <ul class="list-unstyled text-start">
+                                            <li><i class="bi bi-check text-success"></i> Tablier</li>
+                                            <li><i class="bi bi-check text-success"></i> Système de capotage</li>
+                                            <li><i class="bi bi-check text-success"></i> Motorisation</li>
+                                            <li><i class="bi bi-check text-success"></i> Options radio</li>
+                                            <li><i class="bi bi-check text-success"></i> Dimensions</li>
+                                            <li><i class="bi bi-check text-success"></i> Options diverses</li>
+                                        </ul>
+                                        <button type="submit" name="config_type" value="conf_volet" class="btn btn-info btn-lg w-100 mt-3">
+                                            <i class="bi bi-arrow-right"></i>
+                                            Configurer Volets
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Option ignorer -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card border-secondary">
+                                    <div class="card-body text-center py-3">
+                                        <h6 class="card-title text-muted">Ou bien...</h6>
+                                        <p class="card-text text-muted mb-3">
+                                            Vous pouvez ignorer la configuration pour le moment et la faire plus tard depuis la fiche projet.
+                                        </p>
+                                        <button type="submit" name="config_type" value="skip" class="btn btn-outline-secondary">
+                                            <i class="bi bi-skip-forward"></i>
+                                            Ignorer la configuration
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ path('app_projet_show', {id: projet.id}) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-eye"></i> Voir le projet
+                </a>
+                <a href="{{ path('app_projet_index') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-list"></i> Liste des projets
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.config-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.config-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.config-option:hover .card-body {
+    background-color: rgba(0,0,0,0.02);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Effet hover pour les cartes de configuration
+    const configOptions = document.querySelectorAll('.config-option');
+    
+    configOptions.forEach(option => {
+        option.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        
+        option.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}
