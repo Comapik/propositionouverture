@@ -171,17 +171,34 @@
                                                         </div>
                                                     {% endif %}
                                                     
-                                                    {% if confPf.prixUnitaire %}
+                                                    {% if confPf.position %}
                                                         <div class="mb-2">
-                                                            <strong class="text-warning">Prix unitaire :</strong>
-                                                            <span class="badge bg-warning text-dark">{{ confPf.prixUnitaire }}€</span>
+                                                            <strong class="text-dark">Position :</strong>
+                                                            <span class="badge bg-secondary">{{ confPf.position }}</span>
                                                         </div>
                                                     {% endif %}
                                                     
-                                                    {% if confPf.prixTotal %}
+                                                    {% if confPf.ouverture %}
                                                         <div class="mb-2">
-                                                            <strong class="text-danger">Prix total :</strong>
-                                                            <span class="badge bg-danger">{{ confPf.prixTotal }}€</span>
+                                                            <strong class="text-dark">Ouverture :</strong>
+                                                            <span class="badge bg-info">{{ confPf.ouverture.nom }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if confPf.fournisseur %}
+                                                        <div class="mb-2">
+                                                            <strong class="text-dark">Fournisseur :</strong>
+                                                            <span class="badge bg-warning text-dark">{{ confPf.fournisseur.marque }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if confPf.systeme %}
+                                                        <div class="mb-2">
+                                                            <strong class="text-dark">Système :</strong>
+                                                            <span class="badge bg-info text-white">{{ confPf.systeme.nom }}</span>
+                                                            {% if confPf.systeme.description %}
+                                                                <div class="small text-muted mt-1">{{ confPf.systeme.description }}</div>
+                                                            {% endif %}
                                                         </div>
                                                     {% endif %}
                                                     
