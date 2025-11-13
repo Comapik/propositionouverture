@@ -1,0 +1,589 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sélection des couleurs - {{ projet.refClient }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- En-tête avec breadcrumb -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h2 class="h4 mb-0">
+                                <i class="fas fa-palette me-2"></i>
+                                Sélection des couleurs
+                            </h2>
+                            <small class="opacity-75">{{ projet.refClient }}{% if projet.description %} - {{ projet.description }}{% endif %} - Configuration {{ confpf.id }}</small>
+                        </div>
+                        <div class="col-auto">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb bg-transparent mb-0">
+                                    <li class="breadcrumb-item">
+                                        <a href="{{ path('app_projet_show', {'id': projet.id}) }}" class="text-white-50">
+                                            <i class="fas fa-project-diagram"></i> Projet
+                                        </a>
+                                    </li>
+                                    <li class="breadcrumb-item text-white-75">Produit</li>
+                                    <li class="breadcrumb-item text-white-75">Catégorie</li>
+                                    <li class="breadcrumb-item text-white-75">Sous-catégorie</li>
+                                    <li class="breadcrumb-item text-white-75">Ouverture</li>
+                                    <li class="breadcrumb-item text-white-75">Détails</li>
+                                    <li class="breadcrumb-item active text-white">Couleurs</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Récapitulatif de la configuration actuelle -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Récapitulatif de la configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Produit :</strong>
+                        <span class="badge bg-primary">{{ produit.nom }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Catégorie :</strong>
+                        <span class="badge bg-secondary">{{ categorie.nom }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Sous-catégorie :</strong>
+                        <span class="badge bg-info">{{ sousCategorie.nom }}</span>
+                    </div>
+                    {% if confpf.ouverture %}
+                    <div class="mb-3">
+                        <strong>Ouverture :</strong>
+                        <span class="badge bg-success">{{ confpf.ouverture.nom }}</span>
+                    </div>
+                    {% endif %}
+                    {% if systeme %}
+                    <div class="mb-3">
+                        <strong>Système :</strong>
+                        <span class="badge bg-warning text-dark">{{ systeme.nom }}</span>
+                    </div>
+                    {% endif %}
+                    {% if confpf.fournisseur %}
+                    <div class="mb-3">
+                        <strong>Fournisseur :</strong>
+                        <span class="badge bg-dark">{{ confpf.fournisseur.marque }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire de sélection des couleurs -->
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-palette me-2"></i>
+                        Choisir les couleurs intérieure et extérieure
+                    </h5>
+                    <small class="text-muted">Sélectionnez les couleurs pour l'intérieur et l'extérieur de votre menuiserie</small>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'couleur-selection-form'}}) }}
+                    
+                    <div class="row">
+                        <!-- Couleur intérieure -->
+                        <div class="col-md-6 mb-4">
+                            <div class="color-selection-container">
+                                <div class="color-selection-header">
+                                    {{ form_label(form.couleurInterieur, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                    <div class="color-type-toggle">
+                                        <button type="button" class="color-type-btn active" data-type="ral" data-target="interieur">
+                                            RAL
+                                        </button>
+                                        <button type="button" class="color-type-btn" data-type="renolit" data-target="interieur">
+                                            Renolit
+                                        </button>
+                                        <button type="button" class="color-type-btn" data-type="blanc" data-target="interieur">
+                                            Blanc
+                                        </button>
+                                        <button type="button" class="color-type-btn" data-type="creme" data-target="interieur">
+                                            Crème
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {{ form_widget(form.couleurInterieur, {'attr': {'class': 'hidden-select couleur-select', 'data-type': 'interieur'}}) }}
+                                {{ form_help(form.couleurInterieur) }}
+                                {{ form_errors(form.couleurInterieur) }}
+                                
+                                <!-- Grille de couleurs pour l'intérieur -->
+                                <div id="color-grid-interieur" class="color-grid" data-target="couleur_selection_couleurInterieur">
+                                    <!-- Les couleurs seront chargées par JavaScript -->
+                                </div>
+                                
+                                <!-- Aperçu de la couleur intérieure sélectionnée -->
+                                <div id="preview-interieur" class="color-preview-container" style="display: none;">
+                                    <div class="card border-2 border-primary">
+                                        <div class="card-header bg-primary text-white text-center">
+                                            <small>Couleur intérieure sélectionnée</small>
+                                        </div>
+                                        <div class="card-body text-center p-3">
+                                            <div id="color-display-interieur" class="color-display mx-auto mb-2"></div>
+                                            <div id="color-name-interieur" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Couleur extérieure -->
+                        <div class="col-md-6 mb-4">
+                            <div class="color-selection-container">
+                                <div class="color-selection-header">
+                                    {{ form_label(form.couleurExterieur, null, {'label_attr': {'class': 'form-label fw-bold'}}) }}
+                                    <div class="color-type-toggle">
+                                        <button type="button" class="color-type-btn active" data-type="ral" data-target="exterieur">
+                                            RAL
+                                        </button>
+                                        <button type="button" class="color-type-btn" data-type="renolit" data-target="exterieur">
+                                            Renolit
+                                        </button>
+                                        <button type="button" class="color-type-btn" data-type="blanc" data-target="exterieur">
+                                            Blanc
+                                        </button>
+                                        <button type="button" class="color-type-btn" data-type="creme" data-target="exterieur">
+                                            Crème
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {{ form_widget(form.couleurExterieur, {'attr': {'class': 'hidden-select couleur-select', 'data-type': 'exterieur'}}) }}
+                                {{ form_help(form.couleurExterieur) }}
+                                {{ form_errors(form.couleurExterieur) }}
+                                
+                                <!-- Grille de couleurs pour l'extérieur -->
+                                <div id="color-grid-exterieur" class="color-grid" data-target="couleur_selection_couleurExterieur">
+                                    <!-- Les couleurs seront chargées par JavaScript -->
+                                </div>
+                                
+                                <!-- Aperçu de la couleur extérieure sélectionnée -->
+                                <div id="preview-exterieur" class="color-preview-container" style="display: none;">
+                                    <div class="card border-2 border-success">
+                                        <div class="card-header bg-success text-white text-center">
+                                            <small>Couleur extérieure sélectionnée</small>
+                                        </div>
+                                        <div class="card-body text-center p-3">
+                                            <div id="color-display-exterieur" class="color-display mx-auto mb-2"></div>
+                                            <div id="color-name-exterieur" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{{ path('app_configuration_pf_details', {'projet': projet.id, 'confpf': confpf.id}) }}" 
+                                   class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Retour aux détails
+                                </a>
+                                
+                                {{ form_widget(form.submit) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.color-display {
+    width: 100px;
+    height: 100px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-preview-container {
+    margin-top: 15px;
+}
+
+/* Styling pour les options de select avec aperçu couleur */
+.couleur-select {
+    position: relative;
+}
+
+.couleur-select option {
+    padding: 8px 12px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+/* Container pour l'aperçu des couleurs dans le dropdown */
+.color-option-preview {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* Grille d'aperçu des couleurs */
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.color-card {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    transition: all 0.2s ease;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.color-card.selected {
+    border-color: #28a745;
+    background-color: #f8f9fa;
+}
+
+.color-card .color-sample {
+    width: 100%;
+    height: 60px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    margin-bottom: 8px;
+}
+
+.color-card .color-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+    line-height: 1.2;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Style pour le select masqué */
+.hidden-select {
+    display: none;
+}
+
+.color-selection-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.color-type-toggle {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.color-type-btn {
+    padding: 6px 12px;
+    border: 1px solid #dee2e6;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.color-type-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Données des couleurs (seront récupérées du formulaire)
+    const couleurs = {};
+    
+    // Récupérer toutes les couleurs depuis les options des selects
+    function loadCouleurs() {
+        const selectInterieur = document.getElementById('couleur_selection_couleurInterieur');
+        const selectExterieur = document.getElementById('couleur_selection_couleurExterieur');
+        
+        if (selectInterieur) {
+            Array.from(selectInterieur.options).forEach((option, index) => {
+                if (option.value && option.value !== '') {
+                    const plaxageId = option.getAttribute('data-plaxage-laquage') || '0';
+                    const colorHex = option.getAttribute('data-color-hex');
+                    const colorImage = option.getAttribute('data-color-image');
+                    const colorType = option.getAttribute('data-color-type');
+                    
+                    couleurs[option.value] = {
+                        id: option.value,
+                        nom: option.textContent.trim(),
+                        plaxageLaquageId: parseInt(plaxageId),
+                        codeHex: colorHex,
+                        urlImage: colorImage,
+                        isRAL: parseInt(plaxageId) === 1,
+                        isRenolit: parseInt(plaxageId) === 2
+                    };
+                }
+            });
+        }
+        
+        console.log('Couleurs chargées:', Object.keys(couleurs).length);
+    }
+    
+    // Créer une carte de couleur
+    function createColorCard(couleur, target) {
+        const card = document.createElement('div');
+        card.className = 'color-card';
+        card.dataset.couleurId = couleur.id;
+        card.dataset.target = target;
+        
+        const sample = document.createElement('div');
+        sample.className = 'color-sample';
+        
+        if ((couleur.isRAL && couleur.codeHex) || (couleur.isSpecial && couleur.codeHex)) {
+            sample.style.backgroundColor = couleur.codeHex;
+        } else if (couleur.isRenolit && couleur.urlImage) {
+            sample.style.backgroundImage = `url('${couleur.urlImage}')`;
+            sample.style.backgroundSize = 'cover';
+            sample.style.backgroundPosition = 'center';
+            sample.style.backgroundColor = '#f8f9fa';
+        } else {
+            sample.style.backgroundColor = '#f8f9fa';
+            sample.style.border = '2px dashed #dee2e6';
+        }
+        
+        const name = document.createElement('div');
+        name.className = 'color-name';
+        name.textContent = couleur.nom;
+        
+        card.appendChild(sample);
+        card.appendChild(name);
+        
+        // Gestionnaire de clic
+        card.addEventListener('click', function() {
+            selectColor(couleur, target);
+        });
+        
+        return card;
+    }
+    
+    // Sélectionner une couleur
+    function selectColor(couleur, target) {
+        const selectElement = document.getElementById(`couleur_selection_couleur${target.charAt(0).toUpperCase() + target.slice(1)}`);
+        const grid = document.getElementById(`color-grid-${target}`);
+        const preview = document.getElementById(`preview-${target}`);
+        const colorDisplay = document.getElementById(`color-display-${target}`);
+        const colorName = document.getElementById(`color-name-${target}`);
+        
+        // Mettre à jour le select caché
+        if (selectElement) {
+            // Pour les couleurs spéciales, on crée une option temporaire
+            if (couleur.isSpecial) {
+                // Vérifier si l'option existe déjà
+                let existingOption = selectElement.querySelector(`option[value="${couleur.id}"]`);
+                if (!existingOption) {
+                    // Créer une nouvelle option pour la couleur spéciale
+                    const option = document.createElement('option');
+                    option.value = couleur.id;
+                    option.textContent = couleur.nom;
+                    option.setAttribute('data-special-type', couleur.specialType);
+                    option.setAttribute('data-color-hex', couleur.codeHex);
+                    selectElement.appendChild(option);
+                }
+            }
+            selectElement.value = couleur.id;
+        }
+        
+        // Mettre à jour les classes selected dans la grille
+        if (grid) {
+            grid.querySelectorAll('.color-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            const selectedCard = grid.querySelector(`[data-couleur-id="${couleur.id}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+        }
+        
+        // Mettre à jour l'aperçu
+        if (colorDisplay && colorName) {
+            colorName.textContent = couleur.nom;
+            
+            if ((couleur.isRAL && couleur.codeHex) || (couleur.isSpecial && couleur.codeHex)) {
+                colorDisplay.style.backgroundColor = couleur.codeHex;
+                colorDisplay.style.backgroundImage = 'none';
+            } else if (couleur.isRenolit && couleur.urlImage) {
+                colorDisplay.style.backgroundColor = '#f8f9fa';
+                colorDisplay.style.backgroundImage = `url('${couleur.urlImage}')`;
+                colorDisplay.style.backgroundSize = 'cover';
+                colorDisplay.style.backgroundPosition = 'center';
+            }
+            
+            if (preview) {
+                preview.style.display = 'block';
+            }
+        }
+    }
+    
+    // Afficher les couleurs dans une grille
+    function displayColors(target, type) {
+        const grid = document.getElementById(`color-grid-${target}`);
+        if (!grid) return;
+        
+        grid.innerHTML = '';
+        
+        // Gérer les couleurs spéciales (blanc et crème)
+        if (type === 'blanc' || type === 'creme') {
+            const specialColors = getSpecialColors(type);
+            specialColors.forEach(couleur => {
+                const card = createColorCard(couleur, target);
+                grid.appendChild(card);
+            });
+            return;
+        }
+        
+        // Gérer les couleurs normales (RAL et Renolit)
+        const filteredCouleurs = Object.values(couleurs).filter(couleur => {
+            if (type === 'ral') return couleur.isRAL;
+            if (type === 'renolit') return couleur.isRenolit;
+            return true;
+        });
+        
+        if (filteredCouleurs.length === 0) {
+            const message = document.createElement('div');
+            message.className = 'text-center text-muted p-4';
+            message.textContent = `Aucune couleur ${type.toUpperCase()} disponible`;
+            grid.appendChild(message);
+            return;
+        }
+        
+        filteredCouleurs.forEach(couleur => {
+            const card = createColorCard(couleur, target);
+            grid.appendChild(card);
+        });
+    }
+    
+    // Générer les couleurs spéciales
+    function getSpecialColors(type) {
+        if (type === 'blanc') {
+            return [
+                {
+                    id: 'special_blanc',
+                    nom: 'Blanc',
+                    plaxageLaquageId: 99, // ID spécial pour les couleurs fixes
+                    codeHex: '#FFFFFF',
+                    urlImage: null,
+                    isRAL: false,
+                    isRenolit: false,
+                    isSpecial: true,
+                    specialType: 'blanc'
+                }
+            ];
+        } else if (type === 'creme') {
+            return [
+                {
+                    id: 'special_creme',
+                    nom: 'Crème',
+                    plaxageLaquageId: 99, // ID spécial pour les couleurs fixes
+                    codeHex: '#F5F5DC',
+                    urlImage: null,
+                    isRAL: false,
+                    isRenolit: false,
+                    isSpecial: true,
+                    specialType: 'creme'
+                }
+            ];
+        }
+        return [];
+    }
+    
+    // Gestionnaires pour les boutons de type
+    function setupTypeToggle() {
+        document.querySelectorAll('.color-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const type = this.dataset.type;
+                const target = this.dataset.target;
+                
+                // Mettre à jour les boutons actifs
+                const container = this.closest('.color-selection-container');
+                container.querySelectorAll('.color-type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Afficher les couleurs du type sélectionné
+                displayColors(target, type);
+            });
+        });
+    }
+    
+    // Initialisation
+    function init() {
+        loadCouleurs();
+        setupTypeToggle();
+        
+        // Afficher les couleurs RAL par défaut
+        displayColors('interieur', 'ral');
+        displayColors('exterieur', 'ral');
+        
+        // Mettre à jour l'aperçu si une couleur est déjà sélectionnée
+        const selectInterieur = document.getElementById('couleur_selection_couleurInterieur');
+        const selectExterieur = document.getElementById('couleur_selection_couleurExterieur');
+        
+        if (selectInterieur && selectInterieur.value && couleurs[selectInterieur.value]) {
+            selectColor(couleurs[selectInterieur.value], 'interieur');
+        }
+        
+        if (selectExterieur && selectExterieur.value && couleurs[selectExterieur.value]) {
+            selectColor(couleurs[selectExterieur.value], 'exterieur');
+        }
+    }
+    
+    // Démarrer l'initialisation après un court délai pour s'assurer que le DOM est prêt
+    setTimeout(init, 100);
+});
+</script>
+{% endblock %}

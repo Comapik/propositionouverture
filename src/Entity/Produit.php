@@ -34,6 +34,11 @@ class Produit
     #[Assert\Length(min: 2, max: 255)]
     private ?string $nom = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: 'L\'URL de l\'image doit être valide')]
+    #[Assert\Length(max: 255, maxMessage: 'L\'URL ne peut pas dépasser {{ limit }} caractères')]
+    private ?string $urlImage = null;
+
     /**
      * @var Collection<int, Categorie>
      */
@@ -65,6 +70,17 @@ class Produit
     public function setNom(string $nom): static
     {
         $this->nom = $nom;
+        return $this;
+    }
+
+    public function getUrlImage(): ?string
+    {
+        return $this->urlImage;
+    }
+
+    public function setUrlImage(?string $urlImage): static
+    {
+        $this->urlImage = $urlImage;
         return $this;
     }
 

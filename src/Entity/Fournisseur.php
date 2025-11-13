@@ -34,6 +34,10 @@ class Fournisseur
     #[Assert\Length(min: 2, max: 255)]
     private ?string $marque = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: 'L\'URL du logo doit être valide')]
+    private ?string $logo = null;
+
     #[ORM\ManyToOne]
     #[Assert\NotNull(message: 'Le produit est obligatoire')]
     private ?Produit $produit = null;
@@ -59,6 +63,17 @@ class Fournisseur
     public function setMarque(string $marque): static
     {
         $this->marque = $marque;
+        return $this;
+    }
+
+    public function getLogo(): ?string
+    {
+        return $this->logo;
+    }
+
+    public function setLogo(?string $logo): static
+    {
+        $this->logo = $logo;
         return $this;
     }
 

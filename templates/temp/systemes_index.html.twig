@@ -1,0 +1,561 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Systèmes - Page Temporaire{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-tools"></i> Gestion des Systèmes</h1>
+                <span class="badge bg-warning">Page Temporaire d'Administration</span>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-plus-circle"></i> Ajouter un nouveau système</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="newSystemeForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nom" class="form-label">Nom du système *</label>
+                                        <input type="text" class="form-control" id="nom" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="fournisseur_id" class="form-label">Fournisseur *</label>
+                                        <select class="form-select" id="fournisseur_id" required>
+                                            <option value="">Sélectionner un fournisseur</option>
+                                            {% for fournisseur in fournisseurs %}
+                                                <option value="{{ fournisseur.id }}">{{ fournisseur.marque }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="url_image" class="form-label">URL de l'image (optionnel)</label>
+                                    <input type="url" class="form-control" id="url_image" placeholder="https://example.com/image.jpg">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Ouvertures compatibles</label>
+                                    <div class="row">
+                                        {% for ouverture in ouvertures %}
+                                            <div class="col-md-4 col-sm-6 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input ouverture-checkbox" type="checkbox" 
+                                                           value="{{ ouverture.id }}" id="ouv_{{ ouverture.id }}">
+                                                    <label class="form-check-label" for="ouv_{{ ouverture.id }}">
+                                                        {{ ouverture.nom }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllOuvertures()">
+                                            Sélectionner tout
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllOuvertures()">
+                                            Désélectionner tout
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-plus"></i> Ajouter le système
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-link-45deg"></i> Association en lot</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Associer plusieurs systèmes à plusieurs ouvertures en une fois</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkAssociateModal">
+                                <i class="bi bi-diagram-3"></i> Ouvrir l'assistant
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary">{{ systemes|length }}</h3>
+                            <p class="mb-0">Systèmes total</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">{{ fournisseurs|length }}</h3>
+                            <p class="mb-0">Fournisseurs</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">{{ ouvertures|length }}</h3>
+                            <p class="mb-0">Types d'ouvertures</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success" id="totalAssociations">-</h3>
+                            <p class="mb-0">Associations</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="filterFournisseur" class="form-label">Filtrer par fournisseur</label>
+                            <select class="form-select" id="filterFournisseur">
+                                <option value="">Tous les fournisseurs</option>
+                                {% for fournisseur in fournisseurs %}
+                                    <option value="{{ fournisseur.id }}">{{ fournisseur.marque }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="filterNom" class="form-label">Rechercher par nom</label>
+                            <input type="text" class="form-control" id="filterNom" placeholder="Nom du système...">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary me-2" onclick="clearFilters()">
+                                <i class="bi bi-x-circle"></i> Effacer
+                            </button>
+                            <button class="btn btn-info" onclick="showStats()">
+                                <i class="bi bi-bar-chart"></i> Statistiques
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des systèmes -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-list"></i> Liste des Systèmes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAllSystems" title="Sélectionner tout">
+                                    </th>
+                                    <th>Nom</th>
+                                    <th>Fournisseur</th>
+                                    <th>Image</th>
+                                    <th>Ouvertures</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="systemesTableBody">
+                                {% for systeme in systemes %}
+                                    <tr data-systeme-id="{{ systeme.id }}" data-fournisseur-id="{{ systeme.fournisseur.id }}">
+                                        <td>
+                                            <input type="checkbox" class="system-checkbox" value="{{ systeme.id }}">
+                                        </td>
+                                        <td>
+                                            <strong>{{ systeme.nom }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ systeme.fournisseur.marque }}</span>
+                                        </td>
+                                        <td>
+                                            {% if systeme.urlImage %}
+                                                <img src="{{ systeme.urlImage }}" alt="Image" class="img-thumbnail" 
+                                                     style="max-width: 50px; max-height: 50px;" 
+                                                     title="{{ systeme.urlImage }}">
+                                            {% else %}
+                                                <span class="text-muted">Aucune</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info ouvertures-count">{{ systeme.ouvertures|length }}</span>
+                                            <button class="btn btn-sm btn-outline-primary ms-1" 
+                                                    onclick="showOuvertures({{ systeme.id }})">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-warning" onclick="editSysteme({{ systeme.id }})">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="deleteSysteme({{ systeme.id }})">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'association en lot -->
+<div class="modal fade" id="bulkAssociateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Association en lot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Sélectionner les systèmes</h6>
+                        <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                            {% for systeme in systemes %}
+                                <div class="form-check">
+                                    <input class="form-check-input bulk-systeme" type="checkbox" 
+                                           value="{{ systeme.id }}" id="bulk_sys_{{ systeme.id }}">
+                                    <label class="form-check-label" for="bulk_sys_{{ systeme.id }}">
+                                        <strong>{{ systeme.nom }}</strong> ({{ systeme.fournisseur.marque }})
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Sélectionner les ouvertures</h6>
+                        <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                            {% for ouverture in ouvertures %}
+                                <div class="form-check">
+                                    <input class="form-check-input bulk-ouverture" type="checkbox" 
+                                           value="{{ ouverture.id }}" id="bulk_ouv_{{ ouverture.id }}">
+                                    <label class="form-check-label" for="bulk_ouv_{{ ouverture.id }}">
+                                        {{ ouverture.nom }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="executeBulkAssociate()">
+                    <i class="bi bi-link-45deg"></i> Créer les associations
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'édition -->
+<div class="modal fade" id="editSystemeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le système</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSystemeForm">
+                    <input type="hidden" id="edit_systeme_id">
+                    <div class="mb-3">
+                        <label for="edit_nom" class="form-label">Nom du système</label>
+                        <input type="text" class="form-control" id="edit_nom" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_fournisseur_id" class="form-label">Fournisseur</label>
+                        <select class="form-select" id="edit_fournisseur_id" required>
+                            {% for fournisseur in fournisseurs %}
+                                <option value="{{ fournisseur.id }}">{{ fournisseur.marque }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_url_image" class="form-label">URL de l'image</label>
+                        <input type="url" class="form-control" id="edit_url_image">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveSysteme()">
+                    <i class="bi bi-save"></i> Sauvegarder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'affichage des ouvertures -->
+<div class="modal fade" id="ouverturesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ouvertures associées</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="ouverturesContent">
+                    <!-- Contenu chargé dynamiquement -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentSystemeId = null;
+
+// Soumission du formulaire de nouveau système
+document.getElementById('newSystemeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        nom: document.getElementById('nom').value,
+        fournisseur_id: document.getElementById('fournisseur_id').value,
+        url_image: document.getElementById('url_image').value,
+        ouvertures: Array.from(document.querySelectorAll('.ouverture-checkbox:checked')).map(cb => parseInt(cb.value))
+    };
+    
+    fetch('{{ path('temp_systeme_new') }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Système ajouté avec succès !', 'success');
+            document.getElementById('newSystemeForm').reset();
+            deselectAllOuvertures();
+            location.reload(); // Recharger pour voir le nouveau système
+        } else {
+            showAlert('Erreur: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Erreur de communication: ' + error.message, 'danger');
+    });
+});
+
+// Sélectionner/désélectionner toutes les ouvertures
+function selectAllOuvertures() {
+    document.querySelectorAll('.ouverture-checkbox').forEach(cb => cb.checked = true);
+}
+
+function deselectAllOuvertures() {
+    document.querySelectorAll('.ouverture-checkbox').forEach(cb => cb.checked = false);
+}
+
+// Filtrage
+document.getElementById('filterFournisseur').addEventListener('change', filterSystems);
+document.getElementById('filterNom').addEventListener('input', filterSystems);
+
+function filterSystems() {
+    const fournisseurFilter = document.getElementById('filterFournisseur').value;
+    const nomFilter = document.getElementById('filterNom').value.toLowerCase();
+    
+    document.querySelectorAll('#systemesTableBody tr').forEach(row => {
+        const fournisseurId = row.dataset.fournisseurId;
+        const nom = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        
+        const fournisseurMatch = !fournisseurFilter || fournisseurId === fournisseurFilter;
+        const nomMatch = !nomFilter || nom.includes(nomFilter);
+        
+        row.style.display = fournisseurMatch && nomMatch ? '' : 'none';
+    });
+}
+
+function clearFilters() {
+    document.getElementById('filterFournisseur').value = '';
+    document.getElementById('filterNom').value = '';
+    filterSystems();
+}
+
+// Édition de système
+function editSysteme(id) {
+    currentSystemeId = id;
+    const row = document.querySelector(`tr[data-systeme-id="${id}"]`);
+    const nom = row.querySelector('td:nth-child(2)').textContent.trim();
+    const fournisseurId = row.dataset.fournisseurId;
+    
+    document.getElementById('edit_systeme_id').value = id;
+    document.getElementById('edit_nom').value = nom;
+    document.getElementById('edit_fournisseur_id').value = fournisseurId;
+    
+    new bootstrap.Modal(document.getElementById('editSystemeModal')).show();
+}
+
+function saveSysteme() {
+    const formData = {
+        nom: document.getElementById('edit_nom').value,
+        fournisseur_id: document.getElementById('edit_fournisseur_id').value,
+        url_image: document.getElementById('edit_url_image').value
+    };
+    
+    fetch(`{{ path('temp_systeme_edit', {id: '__ID__'}) }}`.replace('__ID__', currentSystemeId), {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Système modifié avec succès !', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editSystemeModal')).hide();
+            location.reload();
+        } else {
+            showAlert('Erreur: ' + data.error, 'danger');
+        }
+    });
+}
+
+// Suppression de système
+function deleteSysteme(id) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce système ?')) {
+        fetch(`{{ path('temp_systeme_delete', {id: '__ID__'}) }}`.replace('__ID__', id), {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Système supprimé avec succès !', 'success');
+                document.querySelector(`tr[data-systeme-id="${id}"]`).remove();
+            } else {
+                showAlert('Erreur: ' + data.error, 'danger');
+            }
+        });
+    }
+}
+
+// Affichage des ouvertures
+function showOuvertures(id) {
+    fetch(`{{ path('temp_systeme_ouvertures', {id: '__ID__'}) }}`.replace('__ID__', id))
+    .then(response => response.json())
+    .then(ouvertures => {
+        const content = ouvertures.length > 0 
+            ? ouvertures.map(o => `<span class="badge bg-primary me-1 mb-1">${o.nom}</span>`).join('')
+            : '<p class="text-muted">Aucune ouverture associée</p>';
+        
+        document.getElementById('ouverturesContent').innerHTML = content;
+        new bootstrap.Modal(document.getElementById('ouverturesModal')).show();
+    });
+}
+
+// Association en lot
+function executeBulkAssociate() {
+    const systemeIds = Array.from(document.querySelectorAll('.bulk-systeme:checked')).map(cb => parseInt(cb.value));
+    const ouvertureIds = Array.from(document.querySelectorAll('.bulk-ouverture:checked')).map(cb => parseInt(cb.value));
+    
+    if (systemeIds.length === 0 || ouvertureIds.length === 0) {
+        showAlert('Veuillez sélectionner au moins un système et une ouverture', 'warning');
+        return;
+    }
+    
+    fetch('{{ path('temp_bulk_associate') }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            systeme_ids: systemeIds,
+            ouverture_ids: ouvertureIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`${data.associations_created} associations créées avec succès !`, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('bulkAssociateModal')).hide();
+            location.reload();
+        } else {
+            showAlert('Erreur: ' + data.error, 'danger');
+        }
+    });
+}
+
+// Utilitaires
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+function showStats() {
+    // Calculer le nombre total d'associations
+    let totalAssociations = 0;
+    document.querySelectorAll('.ouvertures-count').forEach(span => {
+        totalAssociations += parseInt(span.textContent);
+    });
+    
+    document.getElementById('totalAssociations').textContent = totalAssociations;
+    
+    showAlert(`Total: ${totalAssociations} associations entre systèmes et ouvertures`, 'info');
+}
+
+// Initialiser les statistiques au chargement
+document.addEventListener('DOMContentLoaded', showStats);
+</script>
+
+<style>
+.table img.img-thumbnail {
+    cursor: pointer;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.alert {
+    min-width: 300px;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+</style>
+
+{% endblock %}

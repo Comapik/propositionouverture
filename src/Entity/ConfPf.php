@@ -50,6 +50,12 @@ class ConfPf
     #[ORM\ManyToOne(inversedBy: 'confPfs')]
     private ?Systeme $systeme = null;
 
+    #[ORM\ManyToOne(inversedBy: 'confPfsInterieur')]
+    private ?Couleur $couleurInterieur = null;
+
+    #[ORM\ManyToOne(inversedBy: 'confPfsExterieur')]
+    private ?Couleur $couleurExterieur = null;
+
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $largeur = null;
 
@@ -233,6 +239,28 @@ class ConfPf
     public function setSysteme(?Systeme $systeme): static
     {
         $this->systeme = $systeme;
+        return $this;
+    }
+
+    public function getCouleurInterieur(): ?Couleur
+    {
+        return $this->couleurInterieur;
+    }
+
+    public function setCouleurInterieur(?Couleur $couleurInterieur): static
+    {
+        $this->couleurInterieur = $couleurInterieur;
+        return $this;
+    }
+
+    public function getCouleurExterieur(): ?Couleur
+    {
+        return $this->couleurExterieur;
+    }
+
+    public function setCouleurExterieur(?Couleur $couleurExterieur): static
+    {
+        $this->couleurExterieur = $couleurExterieur;
         return $this;
     }
 }

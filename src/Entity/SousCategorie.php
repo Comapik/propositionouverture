@@ -32,6 +32,10 @@ class SousCategorie
     #[Assert\Length(min: 2, max: 255)]
     private ?string $nom = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: 'L\'URL de l\'image doit être valide')]
+    private ?string $urlImage = null;
+
     #[ORM\ManyToOne(inversedBy: 'sousCategories')]
     private ?Produit $produit = null;
 
@@ -51,6 +55,17 @@ class SousCategorie
     public function setNom(string $nom): static
     {
         $this->nom = $nom;
+        return $this;
+    }
+
+    public function getUrlImage(): ?string
+    {
+        return $this->urlImage;
+    }
+
+    public function setUrlImage(?string $urlImage): static
+    {
+        $this->urlImage = $urlImage;
         return $this;
     }
 

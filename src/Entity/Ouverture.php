@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\OuvertureRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -32,9 +34,21 @@ class Ouverture
     #[Assert\Length(min: 2, max: 255)]
     private ?string $nom = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: 'L\'URL de l\'image doit être valide')]
+    private ?string $urlImage = null;
+
     #[ORM\ManyToOne(targetEntity: SousCategorie::class)]
     #[ORM\JoinColumn(name: 'sous_categorie_id')]
     private ?SousCategorie $sousCategorie = null;
+
+    #[ORM\ManyToMany(targetEntity: Systeme::class, mappedBy: 'ouvertures')]
+    private Collection $systemes;
+
+    public function __construct()
+    {
+        $this->systemes = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -52,6 +66,17 @@ class Ouverture
         return $this;
     }
 
+    public function getUrlImage(): ?string
+    {
+        return $this->urlImage;
+    }
+
+    public function setUrlImage(?string $urlImage): static
+    {
+        $this->urlImage = $urlImage;
+        return $this;
+    }
+
     public function getSousCategorie(): ?SousCategorie
     {
         return $this->sousCategorie;
@@ -60,6 +85,33 @@ class Ouverture
     public function setSousCategorie(?SousCategorie $sousCategorie): static
     {
         $this->sousCategorie = $sousCategorie;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Systeme>
+     */
+    public function getSystemes(): Collection
+    {
+        return $this->systemes;
+    }
+
+    public function addSysteme(Systeme $systeme): static
+    {
+        if (!$this->systemes->contains($systeme)) {
+            $this->systemes->add($systeme);
+            $systeme->addOuverture($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSysteme(Systeme $systeme): static
+    {
+        if ($this->systemes->removeElement($systeme)) {
+            $systeme->removeOuverture($this);
+        }
+
         return $this;
     }
 

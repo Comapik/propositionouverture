@@ -33,15 +33,29 @@
                         <form method="post">
                             <div class="row g-3">
                                 {% for categorie in categories %}
-                                    <div class="col-md-6">
-                                        <div class="card border category-card" style="cursor: pointer;">
-                                            <div class="card-body text-center p-4">
-                                                <div class="mb-3">
-                                                    <i class="bi bi-folder text-primary" style="font-size: 2.5rem;"></i>
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="card border category-card" data-category-id="{{ categorie.id }}">
+                                            <div class="position-relative category-image-container">
+                                                {% if categorie.urlImage %}
+                                                    <img src="{{ categorie.urlImage }}" 
+                                                         alt="{{ categorie.nom }}" 
+                                                         class="card-img-top category-image">
+                                                {% else %}
+                                                    <div class="category-placeholder d-flex align-items-center justify-content-center">
+                                                        <i class="bi bi-folder text-primary" style="font-size: 3.5rem;"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <div class="overlay">
+                                                    <div class="overlay-content">
+                                                        <i class="bi bi-check-circle-fill"></i>
+                                                    </div>
                                                 </div>
-                                                <h6 class="card-title">{{ categorie.nom }}</h6>
+                                            </div>
+                                            <div class="card-body text-center p-3">
+                                                <h6 class="card-title mb-2">{{ categorie.nom }}</h6>
                                                 {% if categorie.sousCategories|length > 0 %}
-                                                    <small class="text-muted">
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-collection me-1"></i>
                                                         {{ categorie.sousCategories|length }} sous-catégorie{{ categorie.sousCategories|length > 1 ? 's' : '' }}
                                                     </small>
                                                 {% endif %}
@@ -102,24 +116,149 @@
 .category-card {
     transition: all 0.3s ease;
     cursor: pointer;
+    overflow: hidden;
+    border-radius: 12px;
+    height: 100%;
 }
 
 .category-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
     border-color: #0d6efd !important;
 }
 
 .category-card.selected {
     border-color: #0d6efd !important;
-    background-color: rgba(13, 110, 253, 0.1);
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
+    border-width: 3px;
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(13, 110, 253, 0.4);
+}
+
+.category-image-container {
+    position: relative;
+    min-height: 180px;
+    height: auto;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.category-image {
+    max-width: 100%;
+    max-height: 160px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.category-placeholder {
+    width: 100%;
+    min-height: 160px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-card:hover .category-image {
+    transform: scale(1.05);
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(13, 110, 253, 0.9);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-card.selected .overlay {
+    opacity: 1;
+}
+
+.overlay-content i {
+    color: white;
+    font-size: 3rem;
+    animation: checkmark 0.3s ease-in-out;
+}
+
+@keyframes checkmark {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.category-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    transition: color 0.3s ease;
 }
 
 .category-card.selected .card-title {
     color: #0d6efd;
-    font-weight: bold;
+}
+
+.category-card .card-body {
+    background: white;
+    position: relative;
+}
+
+.category-card.selected .card-body {
+    background: rgba(13, 110, 253, 0.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .category-image-container {
+        min-height: 140px;
+        padding: 8px;
+    }
+    
+    .category-image {
+        max-height: 120px;
+    }
+    
+    .category-placeholder {
+        min-height: 120px;
+    }
+}
+
+@media (max-width: 576px) {
+    .category-image-container {
+        min-height: 120px;
+        padding: 6px;
+    }
+    
+    .category-image {
+        max-height: 100px;
+    }
+    
+    .category-placeholder {
+        min-height: 100px;
+    }
+    
+    .overlay-content i {
+        font-size: 2rem;
+    }
 }
 </style>
 
@@ -131,6 +270,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     categoryCards.forEach((card, index) => {
         card.addEventListener('click', function() {
+            const categoryId = card.getAttribute('data-category-id');
+            
             // Remove selected class from all cards
             categoryCards.forEach(c => c.classList.remove('selected'));
             
@@ -138,26 +279,110 @@ document.addEventListener('DOMContentLoaded', function() {
             card.classList.add('selected');
             
             // Check the corresponding radio button
-            radioInputs[index].checked = true;
+            const radioInput = card.querySelector('.category-radio');
+            if (radioInput) {
+                radioInput.checked = true;
+            }
             
-            // Enable submit button
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('btn-secondary');
-            submitBtn.classList.add('btn-primary');
+            // Enable submit button with animation
+            if (submitBtn.disabled) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('btn-secondary');
+                submitBtn.classList.add('btn-primary');
+                submitBtn.style.animation = 'pulse 0.3s ease-in-out';
+            }
+            
+            // Add a subtle feedback effect
+            card.style.animation = 'selectPulse 0.3s ease-in-out';
+            setTimeout(() => {
+                card.style.animation = '';
+                if (submitBtn.style.animation) {
+                    submitBtn.style.animation = '';
+                }
+            }, 300);
+        });
+        
+        // Add hover effects for better UX
+        card.addEventListener('mouseenter', function() {
+            if (!card.classList.contains('selected')) {
+                card.style.borderColor = '#0d6efd';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (!card.classList.contains('selected')) {
+                card.style.borderColor = '';
+            }
         });
     });
     
-    // Form validation
+    // Form validation with user feedback
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(event) {
             const selectedRadio = document.querySelector('.category-radio:checked');
             if (!selectedRadio) {
                 event.preventDefault();
-                alert('Veuillez sélectionner une catégorie.');
+                
+                // Visual feedback for missing selection
+                categoryCards.forEach(card => {
+                    card.style.animation = 'shake 0.5s ease-in-out';
+                    card.style.borderColor = '#dc3545';
+                });
+                
+                // Show alert with better styling
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-3';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Veuillez sélectionner une catégorie avant de continuer.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                form.insertAdjacentElement('afterend', alertDiv);
+                
+                // Reset card animations after shake
+                setTimeout(() => {
+                    categoryCards.forEach(card => {
+                        card.style.animation = '';
+                        card.style.borderColor = '';
+                    });
+                }, 500);
+                
+                // Auto-remove alert after 5 seconds
+                setTimeout(() => {
+                    if (alertDiv && alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+                
+                return false;
             }
         });
     }
 });
+
+// Add CSS animations for better UX
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes selectPulse {
+        0% { transform: translateY(-8px) scale(1); }
+        50% { transform: translateY(-8px) scale(1.05); }
+        100% { transform: translateY(-8px) scale(1); }
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

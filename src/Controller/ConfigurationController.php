@@ -52,6 +52,9 @@ class ConfigurationController extends AbstractController
         $form = $this->createForm(ProductSelectionType::class);
         $form->handleRequest($request);
 
+        // Récupérer tous les produits pour l'affichage par images
+        $produits = $this->entityManager->getRepository(Produit::class)->findAll();
+
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             $produit = $data['produit'];
@@ -77,6 +80,7 @@ class ConfigurationController extends AbstractController
         return $this->render('configuration/select_product.html.twig', [
             'projet' => $projet,
             'form' => $form,
+            'produits' => $produits,
             'configuration_type' => 'Portes/Fenêtres',
             'confpf' => $confPf,
         ]);
@@ -264,7 +268,15 @@ class ConfigurationController extends AbstractController
             
             $this->addFlash('success', 'Configuration enregistrée avec succès !');
             
-            // Rediriger vers les détails du projet
+            // Vérifier si un système a été sélectionné, si oui rediriger vers le choix des couleurs
+            if ($confPf->getSysteme()) {
+                return $this->redirectToRoute('app_configuration_pf_couleurs', [
+                    'projet' => $projet->getId(),
+                    'confpf' => $confPf->getId(),
+                ]);
+            }
+            
+            // Sinon rediriger vers les détails du projet
             return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
         }
 
@@ -278,6 +290,63 @@ class ConfigurationController extends AbstractController
         ]);
     }
 
+    #[Route('/pf/{projet}/couleurs/{confpf}', name: 'app_configuration_pf_couleurs', methods: ['GET', 'POST'])]
+    public function configurePfCouleurs(
+        #[MapEntity(mapping: ['projet' => 'id'])] Projet $projet,
+        #[MapEntity(mapping: ['confpf' => 'id'])] ConfPf $confPf,
+        Request $request
+    ): Response {
+        // Vérifier que toutes les étapes précédentes sont complètes
+        if (!$confPf->getProduit() || !$confPf->getCategorie() || !$confPf->getSousCategorie() || !$confPf->getSysteme()) {
+            $this->addFlash('error', 'Configuration incomplète. Veuillez d\'abord compléter les étapes précédentes.');
+            return $this->redirectToRoute('app_configuration_pf_details', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        $form = $this->createForm(\App\Form\CouleurSelectionType::class, $confPf);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Gérer les couleurs spéciales (blanc et crème)
+            $this->handleSpecialColors($confPf);
+            
+            // Mettre à jour les timestamps
+            $confPf->setUpdatedAt(new \DateTimeImmutable());
+            $this->entityManager->flush();
+            
+            $couleurInterieur = $confPf->getCouleurInterieur();
+            $couleurExterieur = $confPf->getCouleurExterieur();
+            
+            $message = 'Couleurs sélectionnées : ';
+            if ($couleurInterieur) {
+                $message .= 'Intérieur: ' . $couleurInterieur->getNom();
+            }
+            if ($couleurExterieur) {
+                if ($couleurInterieur) {
+                    $message .= ', ';
+                }
+                $message .= 'Extérieur: ' . $couleurExterieur->getNom();
+            }
+            
+            $this->addFlash('success', $message);
+            
+            // Rediriger vers les détails du projet (ou prochaine étape si il y en a une)
+            return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+        }
+
+        return $this->render('configuration/select_couleurs.html.twig', [
+            'projet' => $projet,
+            'confpf' => $confPf,
+            'produit' => $confPf->getProduit(),
+            'categorie' => $confPf->getCategorie(),
+            'sousCategorie' => $confPf->getSousCategorie(),
+            'systeme' => $confPf->getSysteme(),
+            'form' => $form,
+        ]);
+    }
+
     #[Route('/api/systemes/{fournisseur}', name: 'app_api_systemes_by_fournisseur', methods: ['GET'])]
     public function getSystemesByFournisseur(Fournisseur $fournisseur): JsonResponse
     {
@@ -286,10 +355,37 @@ class ConfigurationController extends AbstractController
         
         $data = [];
         foreach ($systemes as $systeme) {
+            $ouvertures = [];
+            foreach ($systeme->getOuvertures() as $ouverture) {
+                $ouvertures[] = [
+                    'id' => $ouverture->getId(),
+                    'nom' => $ouverture->getNom()
+                ];
+            }
+            
             $data[] = [
                 'id' => $systeme->getId(),
                 'nom' => $systeme->getNom(),
-                'description' => $systeme->getDescription(),
+                'urlImage' => $systeme->getUrlImage(),
+                'ouvertures' => $ouvertures,
+            ];
+        }
+        
+        return new JsonResponse($data);
+    }
+
+    #[Route('/api/systemes/{fournisseur}/{ouverture}', name: 'app_api_systemes_by_fournisseur_and_ouverture', methods: ['GET'])]
+    public function getSystemesByFournisseurAndOuverture(Fournisseur $fournisseur, \App\Entity\Ouverture $ouverture): JsonResponse
+    {
+        $systemes = $this->entityManager->getRepository(\App\Entity\Systeme::class)
+            ->findByFournisseurAndOuverture($fournisseur->getId(), $ouverture->getId());
+        
+        $data = [];
+        foreach ($systemes as $systeme) {
+            $data[] = [
+                'id' => $systeme->getId(),
+                'nom' => $systeme->getNom(),
+                'urlImage' => $systeme->getUrlImage(),
             ];
         }
         
@@ -303,5 +399,79 @@ class ConfigurationController extends AbstractController
         return $this->render('configuration/volet.html.twig', [
             'projet' => $projet,
         ]);
+    }
+
+    /**
+     * Gérer les couleurs spéciales (blanc et crème) en créant les entités si nécessaire
+     */
+    private function handleSpecialColors(ConfPf $confPf): void
+    {
+        $request = $this->container->get('request_stack')->getCurrentRequest();
+        if (!$request) {
+            return;
+        }
+        
+        $couleurRepo = $this->entityManager->getRepository(\App\Entity\Couleur::class);
+        
+        // Récupérer les valeurs raw du formulaire pour détecter les couleurs spéciales
+        $formData = $request->request->all('couleur_selection');
+        
+        // Vérifier et traiter la couleur intérieure
+        if (isset($formData['couleurInterieur'])) {
+            $couleurInterieure = $this->processSpecialColor($formData['couleurInterieur'], $couleurRepo);
+            if ($couleurInterieure) {
+                $confPf->setCouleurInterieur($couleurInterieure);
+            }
+        }
+        
+        // Vérifier et traiter la couleur extérieure
+        if (isset($formData['couleurExterieur'])) {
+            $couleurExterieure = $this->processSpecialColor($formData['couleurExterieur'], $couleurRepo);
+            if ($couleurExterieure) {
+                $confPf->setCouleurExterieur($couleurExterieure);
+            }
+        }
+    }
+
+    /**
+     * Traiter une couleur spéciale individuelle
+     */
+    private function processSpecialColor(string $couleurId, $couleurRepo): ?\App\Entity\Couleur
+    {
+        // Si ce n'est pas une couleur spéciale, retourner la couleur existante
+        if (!str_starts_with($couleurId, 'special_')) {
+            return $couleurRepo->find($couleurId);
+        }
+        
+        // Traiter les couleurs spéciales
+        if ($couleurId === 'special_blanc') {
+            return $this->getOrCreateSpecialColor('Blanc', '#FFFFFF', $couleurRepo);
+        } elseif ($couleurId === 'special_creme') {
+            return $this->getOrCreateSpecialColor('Crème', '#F5F5DC', $couleurRepo);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Récupérer ou créer une couleur spéciale
+     */
+    private function getOrCreateSpecialColor(string $nom, string $codeHex, $couleurRepo): \App\Entity\Couleur
+    {
+        // Chercher si la couleur existe déjà
+        $couleur = $couleurRepo->findOneBy(['nom' => $nom, 'codeHex' => $codeHex]);
+        
+        if (!$couleur) {
+            // Créer la nouvelle couleur
+            $couleur = new \App\Entity\Couleur();
+            $couleur->setNom($nom);
+            $couleur->setCodeHex($codeHex);
+            $couleur->setPlaxageLaquageId(99); // ID spécial pour les couleurs fixes
+            
+            $this->entityManager->persist($couleur);
+            $this->entityManager->flush();
+        }
+        
+        return $couleur;
     }
 }

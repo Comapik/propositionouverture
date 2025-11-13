@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Test - Aperçu des couleurs{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h2 mb-4">
+                <i class="fas fa-palette me-2"></i>
+                Test - Aperçu des couleurs RAL et Renolit
+            </h1>
+
+            <!-- Couleurs RAL -->
+            <div class="mb-5">
+                <h3 class="h4 mb-3">Couleurs RAL ({{ couleursRAL|length }} couleurs)</h3>
+                <p class="text-muted mb-3">Couleurs avec code hexadécimal (plaxage_laquage_id = 1)</p>
+                
+                <div class="row">
+                    {% for couleur in couleursRAL|slice(0, 40) %}
+                        <div class="col-md-3 col-lg-2 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center p-2">
+                                    <div class="color-sample mb-2" 
+                                         style="width: 100%; height: 60px; background-color: {{ couleur.codeHex }}; border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                    <div class="color-info">
+                                        <small class="fw-bold d-block">{{ couleur.nom }}</small>
+                                        <small class="text-muted">{{ couleur.codeHex }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                {% if couleursRAL|length > 40 %}
+                    <p class="text-muted mt-3">... et {{ couleursRAL|length - 40 }} autres couleurs RAL</p>
+                {% endif %}
+            </div>
+
+            <!-- Couleurs Renolit -->
+            {% if couleursRenolit|length > 0 %}
+            <div class="mb-5">
+                <h3 class="h4 mb-3">Couleurs Renolit ({{ couleursRenolit|length }} couleurs)</h3>
+                <p class="text-muted mb-3">Couleurs avec images/textures (plaxage_laquage_id = 2)</p>
+                
+                <div class="row">
+                    {% for couleur in couleursRenolit %}
+                        <div class="col-md-3 col-lg-2 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center p-2">
+                                    <div class="color-sample mb-2" 
+                                         style="width: 100%; height: 60px; 
+                                                {% if couleur.urlImage %}
+                                                    background-image: url('{{ couleur.urlImage }}'); 
+                                                    background-size: cover; 
+                                                    background-position: center;
+                                                {% else %}
+                                                    background-color: #f8f9fa; 
+                                                    border: 2px dashed #dee2e6;
+                                                {% endif %}
+                                                border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                    <div class="color-info">
+                                        <small class="fw-bold d-block">{{ couleur.nom }}</small>
+                                        {% if couleur.urlImage %}
+                                            <small class="text-muted">Image</small>
+                                        {% else %}
+                                            <small class="text-muted">Pas d'image</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Informations -->
+            <div class="alert alert-info">
+                <h5 class="alert-heading">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Informations sur l'interface de couleurs
+                </h5>
+                <hr>
+                <p class="mb-2"><strong>Couleurs RAL :</strong> Affichées avec leur code hexadécimal comme couleur de fond</p>
+                <p class="mb-2"><strong>Couleurs Renolit :</strong> Affichées avec leur image/texture</p>
+                <p class="mb-0"><strong>Interface configurateur :</strong> Propose une grille interactive avec aperçu en temps réel</p>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ path('app_configuration_pf_couleurs', {'projet': 1, 'confpf': 1}) }}" 
+                   class="btn btn-primary">
+                    <i class="fas fa-palette me-2"></i>
+                    Tester l'interface de sélection des couleurs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

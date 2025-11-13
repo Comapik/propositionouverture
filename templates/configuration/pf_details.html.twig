@@ -138,8 +138,57 @@
                             <div class="row">
                                 <div class="col-12 mb-3">
                                     <div class="form-group">
-                                        {{ form_label(form.fournisseur) }}
-                                        {{ form_widget(form.fournisseur) }}
+                                        <label class="form-label">{{ form.fournisseur.vars.label }}</label>
+                                        <!-- Champ caché pour stocker la valeur sélectionnée -->
+                                        {{ form_widget(form.fournisseur, {'attr': {'style': 'display: none;', 'data-fournisseur-select': 'true'}}) }}
+                                        
+                                        <!-- Interface de sélection par images pour fournisseurs -->
+                                        <div id="fournisseur-selection-container" class="mt-3">
+                                            {% if form.fournisseur.vars.choices|length > 0 %}
+                                                <div class="row g-3">
+                                                    {% for choice in form.fournisseur.vars.choices %}
+                                                        {% set fournisseur = choice.data %}
+                                                        <div class="col-lg-4 col-md-6">
+                                                            <div class="card border fournisseur-card" 
+                                                                 data-fournisseur-id="{{ fournisseur.id }}"
+                                                                 data-fournisseur-name="{{ fournisseur.marque }}">
+                                                                <div class="position-relative fournisseur-image-container">
+                                                                    {% if fournisseur.logo %}
+                                                                        <img src="{{ fournisseur.logo }}" 
+                                                                             alt="Logo {{ fournisseur.marque }}" 
+                                                                             class="card-img-top fournisseur-image">
+                                                                    {% else %}
+                                                                        <div class="fournisseur-placeholder d-flex align-items-center justify-content-center">
+                                                                            <i class="bi bi-building text-warning" style="font-size: 3.5rem;"></i>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                    <div class="overlay">
+                                                                        <div class="overlay-content">
+                                                                            <i class="bi bi-check-circle-fill"></i>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="card-body text-center p-3">
+                                                                    <h6 class="card-title mb-2">{{ fournisseur.marque }}</h6>
+                                                                    {% if fournisseur.produit %}
+                                                                        <small class="text-muted d-block">
+                                                                            <i class="bi bi-box me-1"></i>
+                                                                            {{ fournisseur.produit.nom }}
+                                                                        </small>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <div class="alert alert-warning text-center">
+                                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                                    Aucun fournisseur disponible pour ce produit.
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
                                         {% if form.fournisseur.vars.help %}
                                             <small class="form-text text-muted">{{ form.fournisseur.vars.help }}</small>
                                         {% endif %}
@@ -152,7 +201,17 @@
                                 <div class="col-12 mb-3">
                                     <div class="form-group">
                                         {{ form_label(form.systeme) }}
-                                        {{ form_widget(form.systeme) }}
+                                        <!-- Champ caché pour stocker la valeur sélectionnée -->
+                                        {{ form_widget(form.systeme, {'attr': {'style': 'display: none;'}}) }}
+                                        
+                                        <!-- Interface de sélection par images -->
+                                        <div id="systeme-selection-container" class="mt-3">
+                                            <div class="alert alert-info text-center">
+                                                <i class="bi bi-info-circle"></i> 
+                                                Veuillez d'abord sélectionner un fournisseur pour voir les systèmes disponibles.
+                                            </div>
+                                        </div>
+                                        
                                         {% if form.systeme.vars.help %}
                                             <small class="form-text text-muted">{{ form.systeme.vars.help }}</small>
                                         {% endif %}
@@ -192,61 +251,509 @@
 </div>
 
 <script>
-// Gestion de la sélection dépendante fournisseur -> système
+// Gestion de la sélection dépendante fournisseur + ouverture -> système avec interface d'images
 document.addEventListener('DOMContentLoaded', function() {
     const fournisseurSelect = document.querySelector('[data-fournisseur-select]');
     const systemeSelect = document.querySelector('[data-systeme-select]');
+    const systemeContainer = document.getElementById('systeme-selection-container');
     
-    // Gestion de la sélection dépendante fournisseur -> système
-    if (fournisseurSelect && systemeSelect) {
+    // Récupérer l'ID de l'ouverture depuis la configuration
+    const ouvertureId = {{ confpf.ouverture ? confpf.ouverture.id : 'null' }};
+    console.log('Ouverture ID:', ouvertureId);
+    
+    // Gestion de la sélection des fournisseurs par images
+    const fournisseurCards = document.querySelectorAll('.fournisseur-card');
+    
+    fournisseurCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const fournisseurId = this.getAttribute('data-fournisseur-id');
+            const fournisseurName = this.getAttribute('data-fournisseur-name');
+            
+            // Désélectionner toutes les cartes
+            fournisseurCards.forEach(c => c.classList.remove('selected'));
+            
+            // Sélectionner la carte cliquée
+            this.classList.add('selected');
+            
+            // Mettre à jour le champ caché
+            if (fournisseurSelect) {
+                fournisseurSelect.value = fournisseurId;
+                
+                // Déclencher l'événement change pour mettre à jour les systèmes
+                const changeEvent = new Event('change', { bubbles: true });
+                fournisseurSelect.dispatchEvent(changeEvent);
+            }
+            
+            console.log('Fournisseur sélectionné:', fournisseurId, fournisseurName);
+        });
+        
+        // Ajouter les effets hover
+        card.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('selected')) {
+                this.style.borderColor = '#ffc107';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('selected')) {
+                this.style.borderColor = '';
+            }
+        });
+    });
+    
+    // Initialiser la sélection si un fournisseur est déjà choisi
+    if (fournisseurSelect && fournisseurSelect.value) {
+        const selectedCard = document.querySelector(`[data-fournisseur-id="${fournisseurSelect.value}"]`);
+        if (selectedCard) {
+            selectedCard.classList.add('selected');
+        }
+    }
+    
+    if (fournisseurSelect && systemeContainer) {
         fournisseurSelect.addEventListener('change', function() {
             const fournisseurId = this.value;
+            console.log('Changement de fournisseur:', fournisseurId);
             
-            if (!fournisseurId) {
-                // Réinitialiser la liste des systèmes
-                systemeSelect.innerHTML = '<option value="">Sélectionner un système...</option>';
-                systemeSelect.disabled = true;
+            if (!fournisseurId || !ouvertureId) {
+                // Réinitialiser l'interface si pas de sélection
+                systemeContainer.innerHTML = `
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> 
+                        ${!fournisseurId ? 'Veuillez sélectionner un fournisseur' : 'Ouverture non définie'} pour voir les systèmes disponibles.
+                    </div>
+                `;
+                if (systemeSelect) {
+                    systemeSelect.value = '';
+                }
                 return;
             }
             
-            // Afficher le chargement
-            systemeSelect.innerHTML = '<option value="">Chargement...</option>';
-            systemeSelect.disabled = true;
+            // Afficher un indicateur de chargement
+            systemeContainer.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p class="mt-2 mb-0">Chargement des systèmes...</p>
+                </div>
+            `;
             
-            // Appel AJAX pour récupérer les systèmes du fournisseur
-            fetch(`{{ path('app_api_systemes_by_fournisseur', {fournisseur: '__FOURNISSEUR_ID__'}) }}`.replace('__FOURNISSEUR_ID__', fournisseurId))
-                .then(response => response.json())
-                .then(systemes => {
-                    systemeSelect.innerHTML = '<option value="">Sélectionner un système...</option>';
-                    
-                    systemes.forEach(systeme => {
-                        const option = document.createElement('option');
-                        option.value = systeme.id;
-                        option.textContent = systeme.nom;
-                        if (systeme.description) {
-                            option.title = systeme.description;
-                        }
-                        systemeSelect.appendChild(option);
-                    });
-                    
-                    systemeSelect.disabled = false;
-                    
-                    // Message informatif
-                    const formGroup = systemeSelect.closest('.form-group') || systemeSelect.closest('.mb-3');
-                    if (formGroup) {
-                        let infoDiv = formGroup.querySelector('.systeme-info');
-                        if (infoDiv) {
-                            infoDiv.remove();
-                        }
+            // Déterminer l'URL de l'API selon si on a une ouverture ou pas
+            let apiUrl;
+            if (ouvertureId) {
+                // Utiliser l'API qui filtre par fournisseur ET ouverture
+                apiUrl = `{{ path('app_api_systemes_by_fournisseur_and_ouverture', {fournisseur: '__FOURNISSEUR_ID__', ouverture: '__OUVERTURE_ID__'}) }}`
+                    .replace('__FOURNISSEUR_ID__', fournisseurId)
+                    .replace('__OUVERTURE_ID__', ouvertureId);
+            } else {
+                // Utiliser l'API qui filtre seulement par fournisseur
+                apiUrl = `{{ path('app_api_systemes_by_fournisseur', {fournisseur: '__FOURNISSEUR_ID__'}) }}`
+                    .replace('__FOURNISSEUR_ID__', fournisseurId);
+            }
+            
+            // Charger les systèmes via AJAX
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur réseau');
                     }
+                    return response.json();
+                })
+                .then(systemes => {
+                    console.log('Systèmes reçus:', systemes);
+                    displaySystemesAsImages(systemes);
                 })
                 .catch(error => {
                     console.error('Erreur lors du chargement des systèmes:', error);
-                    systemeSelect.innerHTML = '<option value="">Erreur de chargement</option>';
-                    systemeSelect.disabled = true;
+                    systemeContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Erreur lors du chargement des systèmes
+                        </div>
+                    `;
                 });
         });
+        
+        // Déclencher le changement si un fournisseur est déjà sélectionné au chargement
+        if (fournisseurSelect.value) {
+            fournisseurSelect.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // Fonction pour afficher les systèmes sous forme d'images cliquables
+    function displaySystemesAsImages(systemes) {
+        if (!systemes || systemes.length === 0) {
+            systemeContainer.innerHTML = `
+                <div class="alert alert-warning text-center">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Aucun système compatible trouvé pour cette combinaison fournisseur/ouverture.
+                </div>
+            `;
+            return;
+        }
+        
+        // Créer l'interface de sélection par images
+        let html = `
+            <div class="systeme-selection-info mb-3">
+                <h6><i class="bi bi-images"></i> Sélectionnez un système (${systemes.length} disponible${systemes.length > 1 ? 's' : ''})</h6>
+                <small class="text-muted">Cliquez sur une image pour sélectionner le système correspondant</small>
+            </div>
+            <div class="row g-3">
+        `;
+        
+        systemes.forEach((systeme, index) => {
+            const hasImage = systeme.urlImage && systeme.urlImage.trim() !== '';
+            html += `
+                <div class="col-md-4 col-lg-3">
+                    <div class="systeme-card" data-systeme-id="${systeme.id}" data-systeme-nom="${systeme.nom}">
+                        <div class="card h-100 systeme-option" style="cursor: pointer;">
+                            <div class="card-body text-center p-3">
+                                ${hasImage ? `
+                                    <div class="systeme-image-wrapper mb-2">
+                                        <img src="${systeme.urlImage}" 
+                                             alt="${systeme.nom}" 
+                                             class="img-fluid rounded systeme-image"
+                                             style="max-height: 150px; max-width: 100%; object-fit: cover;"
+                                             onerror="this.parentElement.innerHTML='<div class=&quot;text-muted&quot;><i class=&quot;bi bi-image&quot; style=&quot;font-size: 3rem;&quot;></i><br><small>Image non disponible</small></div>'">
+                                    </div>
+                                ` : `
+                                    <div class="text-muted mb-2">
+                                        <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                        <br><small>Pas d'image</small>
+                                    </div>
+                                `}
+                                <h6 class="card-title mb-0 systeme-nom">${systeme.nom}</h6>
+                            </div>
+                            <div class="card-footer text-center p-2">
+                                <small class="text-success selection-indicator" style="display: none;">
+                                    <i class="bi bi-check-circle-fill"></i> Sélectionné
+                                </small>
+                                <small class="text-muted selection-prompt">
+                                    <i class="bi bi-hand-index"></i> Cliquer pour sélectionner
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        systemeContainer.innerHTML = html;
+        
+        // Ajouter les gestionnaires d'événements pour la sélection
+        addSystemeSelectionHandlers();
+        
+        // Sélectionner automatiquement le premier système si disponible
+        if (systemes.length > 0) {
+            selectSysteme(systemes[0].id, systemes[0].nom);
+        }
+    }
+    
+    // Fonction pour ajouter les gestionnaires d'événements
+    function addSystemeSelectionHandlers() {
+        const systemeCards = document.querySelectorAll('.systeme-card');
+        
+        systemeCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const systemeId = this.getAttribute('data-systeme-id');
+                const systemeNom = this.getAttribute('data-systeme-nom');
+                selectSysteme(systemeId, systemeNom);
+            });
+            
+            // Effets hover
+            card.addEventListener('mouseenter', function() {
+                this.querySelector('.card').style.transform = 'scale(1.02)';
+                this.querySelector('.card').style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                if (!this.classList.contains('selected')) {
+                    this.querySelector('.card').style.transform = 'scale(1)';
+                    this.querySelector('.card').style.boxShadow = '';
+                }
+            });
+        });
+    }
+    
+    // Fonction pour sélectionner un système
+    function selectSysteme(systemeId, systemeNom) {
+        console.log('Sélection du système:', systemeId, systemeNom);
+        
+        // Mettre à jour le champ caché
+        if (systemeSelect) {
+            systemeSelect.value = systemeId;
+        }
+        
+        // Mettre à jour l'affichage visuel
+        const allCards = document.querySelectorAll('.systeme-card');
+        allCards.forEach(card => {
+            card.classList.remove('selected');
+            card.querySelector('.card').style.border = '';
+            card.querySelector('.card').style.backgroundColor = '';
+            card.querySelector('.card').style.transform = 'scale(1)';
+            card.querySelector('.card').style.boxShadow = '';
+            card.querySelector('.selection-indicator').style.display = 'none';
+            card.querySelector('.selection-prompt').style.display = 'block';
+        });
+        
+        // Marquer la carte sélectionnée
+        const selectedCard = document.querySelector(`[data-systeme-id="${systemeId}"]`);
+        if (selectedCard) {
+            selectedCard.classList.add('selected');
+            selectedCard.querySelector('.card').style.border = '2px solid #0d6efd';
+            selectedCard.querySelector('.card').style.backgroundColor = '#f8f9fa';
+            selectedCard.querySelector('.card').style.transform = 'scale(1.02)';
+            selectedCard.querySelector('.card').style.boxShadow = '0 4px 12px rgba(13, 110, 253, 0.3)';
+            selectedCard.querySelector('.selection-indicator').style.display = 'block';
+            selectedCard.querySelector('.selection-prompt').style.display = 'none';
+        }
+        
+        console.log('Système sélectionné:', systemeNom);
     }
 });
 </script>
+
+<style>
+/* Styles pour la sélection de système par images */
+.systeme-card {
+    transition: all 0.3s ease;
+}
+
+.systeme-card .card {
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.systeme-card .card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.systeme-card.selected .card {
+    border: 2px solid #0d6efd;
+    background-color: #f8f9fa;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.systeme-image-wrapper {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0.375rem;
+    background-color: #f8f9fa;
+}
+
+.systeme-image {
+    transition: transform 0.2s ease;
+}
+
+.systeme-card:hover .systeme-image {
+    transform: scale(1.05);
+}
+
+.systeme-selection-info h6 {
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.card-footer {
+    background-color: transparent;
+    border-top: 1px solid #e9ecef;
+}
+
+.selection-indicator {
+    font-weight: 500;
+}
+
+.selection-prompt {
+    color: #6c757d;
+}
+
+/* Animations */
+.systeme-card {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .systeme-image-wrapper {
+        height: 120px;
+    }
+    
+    .systeme-card .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Loading spinner */
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Styles pour la sélection de fournisseurs par images */
+.fournisseur-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 12px;
+    height: 100%;
+}
+
+.fournisseur-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    border-color: #ffc107 !important;
+}
+
+.fournisseur-card.selected {
+    border-color: #ffc107 !important;
+    border-width: 3px;
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(255, 193, 7, 0.4);
+}
+
+.fournisseur-image-container {
+    position: relative;
+    min-height: 180px;
+    height: auto;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.fournisseur-image {
+    max-width: 100%;
+    max-height: 160px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.fournisseur-placeholder {
+    width: 100%;
+    min-height: 160px;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-bottom: 1px solid rgba(255, 193, 7, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fournisseur-card:hover .fournisseur-image {
+    transform: scale(1.05);
+}
+
+.fournisseur-card .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 193, 7, 0.9);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fournisseur-card.selected .overlay {
+    opacity: 1;
+}
+
+.fournisseur-card .overlay-content i {
+    color: white;
+    font-size: 3rem;
+    animation: checkmark 0.3s ease-in-out;
+}
+
+@keyframes checkmark {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.fournisseur-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+.fournisseur-card.selected .card-title {
+    color: #ffc107;
+}
+
+.fournisseur-card .card-body {
+    background: white;
+    position: relative;
+}
+
+.fournisseur-card.selected .card-body {
+    background: rgba(255, 193, 7, 0.05);
+}
+
+/* Responsive pour les fournisseurs */
+@media (max-width: 768px) {
+    .fournisseur-image-container {
+        min-height: 140px;
+        padding: 8px;
+    }
+    
+    .fournisseur-image {
+        max-height: 120px;
+    }
+    
+    .fournisseur-placeholder {
+        min-height: 120px;
+    }
+}
+
+@media (max-width: 576px) {
+    .fournisseur-image-container {
+        min-height: 120px;
+        padding: 6px;
+    }
+    
+    .fournisseur-image {
+        max-height: 100px;
+    }
+    
+    .fournisseur-placeholder {
+        min-height: 100px;
+    }
+    
+    .fournisseur-card .overlay-content i {
+        font-size: 2rem;
+    }
+}
+</style>
 {% endblock %}

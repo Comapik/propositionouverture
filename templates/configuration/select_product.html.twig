@@ -5,7 +5,7 @@
 {% block body %}
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-8 mx-auto">
+        <div class="col-md-10 mx-auto">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
@@ -24,11 +24,71 @@
                         Première étape : sélectionnez le type de produit que vous souhaitez configurer.
                     </div>
 
-                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                    <!-- Flash container pour les messages de validation -->
+                    <div id="productFlashContainer"></div>
+
+                    {{ form_start(form, {'attr': {'class': 'needs-validation product-selection-form', 'novalidate': true}}) }}
                         
+                        <!-- Champ caché pour stocker la sélection -->
+                        {{ form_widget(form.produit, {'attr': {'style': 'display: none;'}}) }}
+                        
+                        <!-- Interface de sélection par images -->
                         <div class="mb-4">
-                            {{ form_widget(form.produit) }}
-                            {{ form_errors(form.produit) }}
+                            <h5 class="form-label fs-5 fw-bold">
+                                <i class="bi bi-images me-2"></i>Sélectionnez un produit
+                            </h5>
+                            <small class="text-muted d-block mb-3">Cliquez sur l'image du produit souhaité</small>
+                            
+                            {% if produits|length > 0 %}
+                                <div class="row g-4" id="product-selection-container">
+                                    {% for produit in produits %}
+                                        <div class="col-lg-4 col-md-6">
+                                            <div class="product-card h-100" data-product-id="{{ produit.id }}" data-product-name="{{ produit.nom }}">
+                                                <div class="card h-100 product-option" style="cursor: pointer; transition: all 0.3s ease;">
+                                                    <div class="card-body text-center p-4">
+                                                        {% if produit.urlImage %}
+                                                            <div class="product-image-wrapper mb-3">
+                                                                <img src="{{ produit.urlImage }}" 
+                                                                     alt="{{ produit.nom }}" 
+                                                                     class="img-fluid rounded product-image"
+                                                                     style="max-height: 200px; max-width: 100%; object-fit: contain;"
+                                                                     onerror="this.parentElement.innerHTML='<div class=&quot;text-muted&quot;><i class=&quot;bi bi-box-seam&quot; style=&quot;font-size: 4rem;&quot;></i><br><small>Image non disponible</small></div>'">
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="text-muted mb-3">
+                                                                <i class="bi bi-box-seam" style="font-size: 4rem;"></i>
+                                                                <br><small>Pas d'image</small>
+                                                            </div>
+                                                        {% endif %}
+                                                        <h5 class="card-title mb-2 product-name">{{ produit.nom }}</h5>
+                                                        <div class="product-description text-muted">
+                                                            {% set categoriesCount = produit.categories|length %}
+                                                            {% if categoriesCount > 0 %}
+                                                                {{ categoriesCount }} catégorie{{ categoriesCount > 1 ? 's' : '' }}
+                                                            {% else %}
+                                                                Type de produit
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-footer text-center p-2">
+                                                        <small class="text-success selection-indicator" style="display: none;">
+                                                            <i class="bi bi-check-circle-fill"></i> Sélectionné
+                                                        </small>
+                                                        <small class="text-muted selection-prompt">
+                                                            <i class="bi bi-hand-index"></i> Cliquer pour sélectionner
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    Aucun produit disponible pour le moment.
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="d-flex justify-content-between">
@@ -38,7 +98,7 @@
                                 Retour
                             </a>
                             
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-lg" id="continueButton" disabled>
                                 <i class="bi bi-arrow-right me-2"></i>
                                 Continuer la configuration
                             </button>
@@ -53,36 +113,238 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Form validation
-    const form = document.querySelector('.needs-validation');
-    const submitButton = form.querySelector('button[type="submit"]');
-    const produitSelect = form.querySelector('select[name="product_selection[produit]"]');
+    const form = document.querySelector('.product-selection-form');
+    const continueButton = document.getElementById('continueButton');
+    const productInput = document.querySelector('select[name="product_selection[produit]"]');
+    let selectedProductId = null;
     
-    function toggleSubmitButton() {
-        if (produitSelect.value) {
-            submitButton.disabled = false;
-            submitButton.classList.remove('btn-secondary');
-            submitButton.classList.add('btn-primary');
-        } else {
-            submitButton.disabled = true;
-            submitButton.classList.remove('btn-primary');
-            submitButton.classList.add('btn-secondary');
-        }
+    // Ajouter les gestionnaires d'événements pour la sélection de produits
+    function addProductSelectionHandlers() {
+        const productCards = document.querySelectorAll('.product-card');
+        
+        productCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                const productName = this.getAttribute('data-product-name');
+                selectProduct(productId, productName);
+            });
+            
+            // Effets hover
+            card.addEventListener('mouseenter', function() {
+                if (!this.classList.contains('selected')) {
+                    this.querySelector('.card').style.transform = 'scale(1.02)';
+                    this.querySelector('.card').style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                }
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                if (!this.classList.contains('selected')) {
+                    this.querySelector('.card').style.transform = 'scale(1)';
+                    this.querySelector('.card').style.boxShadow = '';
+                }
+            });
+        });
     }
     
-    // Initial state
-    toggleSubmitButton();
+    // Fonction pour sélectionner un produit
+    function selectProduct(productId, productName) {
+        console.log('Sélection du produit:', productId, productName);
+        
+        selectedProductId = productId;
+        
+        // Mettre à jour le champ caché du formulaire
+        if (productInput) {
+            productInput.value = productId;
+        }
+        
+        // Mettre à jour l'affichage visuel
+        const allCards = document.querySelectorAll('.product-card');
+        allCards.forEach(card => {
+            card.classList.remove('selected');
+            const cardElement = card.querySelector('.card');
+            cardElement.style.border = '';
+            cardElement.style.backgroundColor = '';
+            cardElement.style.transform = 'scale(1)';
+            cardElement.style.boxShadow = '';
+            card.querySelector('.selection-indicator').style.display = 'none';
+            card.querySelector('.selection-prompt').style.display = 'block';
+        });
+        
+        // Marquer la carte sélectionnée
+        const selectedCard = document.querySelector(`[data-product-id="${productId}"]`);
+        if (selectedCard) {
+            selectedCard.classList.add('selected');
+            const cardElement = selectedCard.querySelector('.card');
+            cardElement.style.border = '3px solid #0d6efd';
+            cardElement.style.backgroundColor = '#f8f9fa';
+            cardElement.style.transform = 'scale(1.02)';
+            cardElement.style.boxShadow = '0 4px 12px rgba(13, 110, 253, 0.4)';
+            selectedCard.querySelector('.selection-indicator').style.display = 'block';
+            selectedCard.querySelector('.selection-prompt').style.display = 'none';
+        }
+        
+        // Activer le bouton de continuation
+        continueButton.disabled = false;
+        continueButton.classList.remove('btn-secondary');
+        continueButton.classList.add('btn-primary');
+        
+        console.log('Produit sélectionné:', productName);
+    }
     
-    // Listen for changes
-    produitSelect.addEventListener('change', toggleSubmitButton);
+    // Afficher un message flash local
+    function showProductFlash(message, type = 'warning') {
+        const container = document.getElementById('productFlashContainer');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            const alert = container.querySelector('.alert');
+            if (alert) {
+                alert.classList.remove('show');
+                container.innerHTML = '';
+            }
+        }, 5000);
+    }
     
+    // Validation du formulaire
     form.addEventListener('submit', function(event) {
+        if (!selectedProductId) {
+            event.preventDefault();
+            event.stopPropagation();
+            showProductFlash('Veuillez sélectionner un produit avant de continuer.', 'warning');
+            return false;
+        }
+        
         if (!form.checkValidity()) {
             event.preventDefault();
             event.stopPropagation();
         }
         form.classList.add('was-validated');
     });
+    
+    // Initialiser les gestionnaires d'événements
+    addProductSelectionHandlers();
+    
+    // Pré-sélectionner si une valeur est déjà définie
+    if (productInput && productInput.value) {
+        selectProduct(productInput.value, 'Produit pré-sélectionné');
+    }
 });
 </script>
+
+<style>
+/* Styles pour la sélection de produits par images */
+.product-card {
+    transition: all 0.3s ease;
+}
+
+.product-card .card {
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.product-card .card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.product-card.selected .card {
+    border: 3px solid #0d6efd;
+    background-color: #f8f9fa;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+}
+
+.product-image-wrapper {
+    min-height: 180px;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0.375rem;
+    background-color: #f8f9fa;
+    padding: 10px;
+}
+
+.product-image {
+    transition: transform 0.2s ease;
+    max-height: 160px;
+    width: auto;
+    object-fit: contain;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
+}
+
+.card-footer {
+    background-color: transparent;
+    border-top: 1px solid #e9ecef;
+}
+
+.selection-indicator {
+    font-weight: 500;
+}
+
+.selection-prompt {
+    color: #6c757d;
+}
+
+/* Animations */
+.product-card {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .product-image-wrapper {
+        min-height: 140px;
+        padding: 8px;
+    }
+    
+    .product-image {
+        max-height: 120px;
+    }
+    
+    .product-card .card-body {
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .product-image-wrapper {
+        min-height: 120px;
+        padding: 6px;
+    }
+    
+    .product-image {
+        max-height: 100px;
+    }
+    
+    .product-card .card-body {
+        padding: 1rem;
+    }
+}
+}
+</style>
+
 {% endblock %}

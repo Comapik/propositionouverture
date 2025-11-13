@@ -43,6 +43,36 @@ class SystemeRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Trouve tous les systèmes d'un fournisseur et d'une ouverture donnés
+     */
+    public function findByFournisseurAndOuverture(int $fournisseurId, int $ouvertureId): array
+    {
+        return $this->createQueryBuilder('s')
+            ->join('s.ouvertures', 'o')
+            ->andWhere('s.fournisseur = :fournisseurId')
+            ->andWhere('o.id = :ouvertureId')
+            ->setParameter('fournisseurId', $fournisseurId)
+            ->setParameter('ouvertureId', $ouvertureId)
+            ->orderBy('s.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve tous les systèmes d'une ouverture donnée
+     */
+    public function findByOuvertureId(int $ouvertureId): array
+    {
+        return $this->createQueryBuilder('s')
+            ->join('s.ouvertures', 'o')
+            ->andWhere('o.id = :ouvertureId')
+            ->setParameter('ouvertureId', $ouvertureId)
+            ->orderBy('s.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     //    /**
     //     * @return Systeme[] Returns an array of Systeme objects
     //     */
