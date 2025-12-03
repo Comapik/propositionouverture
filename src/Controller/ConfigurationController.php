@@ -370,8 +370,11 @@ class ConfigurationController extends AbstractController
                 ]);
             }
             
-            // Sinon rediriger vers les détails du projet
-            return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+            // Rediriger vers la génération PDF (dernière étape)
+            return $this->redirectToRoute('app_configuration_pf_pdf', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId()
+            ]);
         }
 
         return $this->render('configuration/pf_details.html.twig', [
@@ -403,8 +406,7 @@ class ConfigurationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Gérer les couleurs spéciales (blanc et crème)
-            $this->handleSpecialColors($confPf);
+            // Les couleurs sont automatiquement transformées par le CouleurTransformer
             
             // Mettre à jour les timestamps
             $confPf->setUpdatedAt(new \DateTimeImmutable());
@@ -426,8 +428,11 @@ class ConfigurationController extends AbstractController
             
             $this->addFlash('success', $message);
             
-            // Rediriger vers les détails du projet (ou prochaine étape si il y en a une)
-            return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+            // Rediriger vers la génération PDF (dernière étape)
+            return $this->redirectToRoute('app_configuration_pf_pdf', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId()
+            ]);
         }
 
         return $this->render('configuration/select_couleurs.html.twig', [
@@ -530,7 +535,10 @@ class ConfigurationController extends AbstractController
     }
 
     /**
-     * Gérer les couleurs spéciales (blanc et crème) en créant les entités si nécessaire
+     * Gérer les couleurs spéciales depuis le formulaire moderne
+     */
+    /**
+     * Gérer les couleurs spéciales (blanc et crème) - méthode legacy
      */
     private function handleSpecialColors(ConfPf $confPf): void
     {
@@ -831,5 +839,127 @@ class ConfigurationController extends AbstractController
         $response->setContent(file_get_contents($filePath));
 
         return $response;
+    }
+
+    #[Route('/pf/{projet}/pdf/{confpf}', name: 'app_configuration_pf_pdf', methods: ['GET', 'POST'], requirements: ['confpf' => '\d+'])]
+    public function configurePfPdf(Projet $projet, int $confpf, Request $request, \App\Service\PdfGeneratorService $pdfGenerator, EntityManagerInterface $entityManager): Response
+    {
+        // Récupérer la configuration ConfPf
+        $confPf = $entityManager->getRepository(ConfPf::class)->find($confpf);
+        if (!$confPf) {
+            throw $this->createNotFoundException('Configuration non trouvée.');
+        }
+        
+        // Vérifier que la configuration appartient bien au projet
+        if ($confPf->getProjet()->getId() !== $projet->getId()) {
+            throw $this->createNotFoundException('Configuration non trouvée pour ce projet.');
+        }
+
+        $pdfPath = null;
+        $encodedPdfPath = null;
+        
+        // Récupérer les PDFs existants pour ce projet
+        $existingPdfs = [];
+        $projetPdfs = $this->entityManager->getRepository(\App\Entity\ProjetPdf::class)
+            ->findByProjetOrderedByDate($projet);
+        
+        foreach ($projetPdfs as $projetPdf) {
+            // Vérifier que le fichier existe encore
+            $fullPath = $this->getParameter('kernel.project_dir') . '/public' . $projetPdf->getFilePath();
+            if (file_exists($fullPath)) {
+                $existingPdfs[] = [
+                    'id' => $projetPdf->getId(),
+                    'filename' => $projetPdf->getFileName(),
+                    'path' => $projetPdf->getFilePath(),
+                    'encodedPath' => $projetPdf->getEncodedPath(),
+                    'customValue' => $projetPdf->getCustomValue(),
+                    'createdAt' => $projetPdf->getCreatedAt(),
+                    'formattedSize' => $projetPdf->getFormattedSize(),
+                ];
+            }
+        }
+
+        if ($request->isMethod('POST')) {
+            $action = $request->request->get('action');
+            
+            if ($action === 'save_and_return') {
+                // Action : sauvegarder et retourner au projet
+                $this->addFlash('success', 'Configuration finalisée avec succès !');
+                return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+            }
+            
+            if ($action === 'generate_pdf') {
+                // Action : générer le PDF
+                $customValue = (float) $request->request->get('custom_value');
+                $calculatedValue = (float) $request->request->get('calculated_value');
+                
+                if ($customValue <= 0) {
+                    $this->addFlash('error', 'Veuillez saisir une valeur valide.');
+                } else {
+                    try {
+                        // Générer le PDF avec les deux valeurs
+                        $pdfPath = $pdfGenerator->generatePlanPdf($confPf, $customValue, $calculatedValue);
+                        $encodedPdfPath = base64_encode($pdfPath);
+                        
+                        $this->addFlash('success', 'PDF généré avec succès avec la côte interne ' . number_format($customValue, 2) . ' cm et la côte extérieur ' . number_format($calculatedValue, 2) . ' cm !');
+                    } catch (\Exception $e) {
+                        $this->addFlash('error', 'Erreur lors de la génération du PDF : ' . $e->getMessage());
+                    }
+                }
+            }
+        }
+
+        return $this->render('configuration/pdf_generation.html.twig', [
+            'projet' => $projet,
+            'confPf' => $confPf,
+            'pdfPath' => $pdfPath,
+            'encodedPdfPath' => $encodedPdfPath,
+            'customValue' => $request->request->get('custom_value'),
+            'existingPdfs' => $existingPdfs,
+        ]);
+    }
+
+    #[Route('/pf/{projet}/pdf/preview', name: 'app_configuration_pf_pdf_preview', methods: ['GET'])]
+    public function previewPdf(Projet $projet, Request $request): Response
+    {
+        $encodedPath = $request->query->get('path');
+        if (!$encodedPath) {
+            throw $this->createNotFoundException('Fichier non trouvé.');
+        }
+
+        $pdfPath = base64_decode($encodedPath);
+        $fullPath = $this->getParameter('kernel.project_dir') . '/public' . $pdfPath;
+
+        if (!file_exists($fullPath)) {
+            throw $this->createNotFoundException('Fichier PDF non trouvé.');
+        }
+
+        // Retourner le PDF avec les en-têtes appropriés pour l'aperçu
+        $response = new Response();
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set('Content-Disposition', 'inline; filename="apercu_plan.pdf"');
+        $response->setContent(file_get_contents($fullPath));
+
+        return $response;
+    }
+
+    #[Route('/pf/{projet}/pdf/download', name: 'app_configuration_pf_pdf_download', methods: ['GET'])]
+    public function downloadPdf(Projet $projet, Request $request): Response
+    {
+        $encodedPath = $request->query->get('path');
+        if (!$encodedPath) {
+            throw $this->createNotFoundException('Fichier non trouvé.');
+        }
+
+        $pdfPath = base64_decode($encodedPath);
+        $fullPath = $this->getParameter('kernel.project_dir') . '/public' . $pdfPath;
+
+        if (!file_exists($fullPath)) {
+            throw $this->createNotFoundException('Fichier PDF non trouvé.');
+        }
+
+        $fileName = 'plan_projet_' . $projet->getRefClient() . '_' . date('Ymd') . '.pdf';
+
+        return $this->file($fullPath, $fileName);
     }
 }

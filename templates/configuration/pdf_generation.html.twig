@@ -1,0 +1,432 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configuration PF - Génération PDF{% endblock %}
+
+{% block body %}
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                        <li class="breadcrumb-item"><a href="{{ path('app_projet_show', {id: projet.id}) }}">Projet {{ projet.refClient }}</a></li>
+                        <li class="breadcrumb-item active">Génération PDF</li>
+                    </ol>
+                </nav>
+                
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-file-pdf"></i>
+                            Génération PDF - Étape finale
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Récapitulatif de la configuration</h5>
+                                <div class="bg-light p-3 rounded">
+                                    <p><strong>Projet :</strong> {{ projet.refClient }}</p>
+                                    <p><strong>Client :</strong> {{ projet.client.nom }}</p>
+                                    {% if confPf.produit %}
+                                        <p><strong>Produit :</strong> {{ confPf.produit.nom }}</p>
+                                    {% endif %}
+                                    {% if confPf.categorie %}
+                                        <p><strong>Catégorie :</strong> {{ confPf.categorie.nom }}</p>
+                                    {% endif %}
+                                    {% if confPf.sousCategorie %}
+                                        <p><strong>Sous-catégorie :</strong> {{ confPf.sousCategorie.nom }}</p>
+                                    {% endif %}
+                                    {% if confPf.couleurInterieur %}
+                                        <p><strong>Couleur intérieure :</strong> {{ confPf.couleurInterieur.nom }}</p>
+                                    {% endif %}
+                                    {% if confPf.couleurExterieur %}
+                                        <p><strong>Couleur extérieure :</strong> {{ confPf.couleurExterieur.nom }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Saisie des dimensions</h5>
+                                <form method="POST" class="needs-validation" novalidate>
+                                    <div class="mb-3">
+                                        <label for="custom_value" class="form-label">
+                                            <strong>Côte interne (décimale)</strong>
+                                            <span class="text-muted">(optionnel pour générer un PDF)</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="custom_value" 
+                                                   name="custom_value" 
+                                                   value="{{ customValue ?? '' }}"
+                                                   step="0.01" 
+                                                   min="0.01"
+                                                   max="9999.99"
+                                                   placeholder="Ex: 123.45">
+                                            <span class="input-group-text">cm</span>
+                                        </div>
+                                        <div class="form-text">
+                                            Si vous saisissez une côte interne, elle sera inscrite sur le plan technique à l'emplacement prévu.
+                                        </div>
+                                        <div class="invalid-feedback">
+                                            Veuillez saisir une côte interne valide (nombre décimal positif).
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Valeur calculée automatiquement -->
+                                    <div class="mb-3" id="calculated_value_display" style="display: none;">
+                                        <label class="form-label">
+                                            <strong>Côte extérieur calculée automatiquement</strong>
+                                            <span class="text-muted">(coefficient 1.5x)</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                   class="form-control bg-light" 
+                                                   id="calculated_value_show" 
+                                                   readonly 
+                                                   placeholder="--">
+                                            <span class="input-group-text">cm</span>
+                                        </div>
+                                        <input type="hidden" id="calculated_value" name="calculated_value" value="">
+                                        <div class="form-text">
+                                            Cette côte extérieur sera également inscrite sur le côté droit du plan technique (à 20mm du bord droit).
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <!-- Bouton générer PDF -->
+                                        <button type="submit" name="action" value="generate_pdf" class="btn btn-success btn-lg" id="generatePdfBtn">
+                                            <i class="fas fa-file-pdf"></i>
+                                            Générer le PDF
+                                        </button>
+                                        
+                                        <!-- Bouton enregistrer et retourner -->
+                                        <button type="submit" name="action" value="save_and_return" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-save"></i>
+                                            Enregistrer et retourner au projet
+                                        </button>
+                                    </div>
+                                </form>
+                                
+                                {% if pdfPath %}
+                                <div class="mt-4 p-3 bg-success text-white rounded">
+                                    <h6><i class="fas fa-check-circle"></i> PDF généré avec succès !</h6>
+                                    <p class="mb-3">Votre plan technique est prêt avec la valeur {{ customValue }} cm.</p>
+                                    
+                                    <!-- Aperçu du PDF -->
+                                    <div class="mb-3 bg-white rounded p-2">
+                                        <h6 class="text-dark mb-2"><i class="fas fa-eye"></i> Aperçu du PDF</h6>
+                                        <div class="pdf-preview-container" style="border: 2px solid #dee2e6; border-radius: 5px; overflow: hidden;">
+                                            <iframe 
+                                                src="{{ path('app_configuration_pf_pdf_preview', {
+                                                    projet: projet.id, 
+                                                    path: encodedPdfPath
+                                                }) }}" 
+                                                width="100%" 
+                                                height="400" 
+                                                style="border: none;"
+                                                title="Aperçu du PDF">
+                                                Votre navigateur ne supporte pas l'affichage des PDF. 
+                                                <a href="{{ path('app_configuration_pf_pdf_download', {
+                                                    projet: projet.id, 
+                                                    path: encodedPdfPath
+                                                }) }}" target="_blank">Cliquez ici pour télécharger le PDF</a>
+                                            </iframe>
+                                        </div>
+                                        <small class="text-muted">Utilisez les contrôles de votre navigateur pour zoomer ou naviguer dans le PDF</small>
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <a href="{{ path('app_configuration_pf_pdf_download', {
+                                            projet: projet.id, 
+                                            path: encodedPdfPath
+                                        }) }}" 
+                                           class="btn btn-light btn-lg" 
+                                           target="_blank">
+                                            <i class="fas fa-download"></i>
+                                            Télécharger le PDF
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Information :</strong> 
+                                    <ul class="mb-0 mt-2">
+                                        <li><strong>Génération PDF :</strong> Optionnelle. Saisissez une valeur pour créer un plan technique avec cette dimension.</li>
+                                        <li><strong>Enregistrer et retourner :</strong> Finalise la configuration et revient aux détails du projet (avec ou sans PDF).</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section PDFs existants -->
+                        {% if existingPdfs is defined and existingPdfs|length > 0 %}
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-history"></i>
+                                            Plans techniques déjà générés ({{ existingPdfs|length }})
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% for pdf in existingPdfs|slice(0, 3) %}
+                                            <div class="pdf-existing-item mb-3 {% if not loop.last %}border-bottom pb-3{% endif %}">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                                <h6 class="mb-1">{{ pdf.filename }}</h6>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <span class="badge bg-info">{{ pdf.customValue }} cm</span>
+                                                                    <span class="badge bg-secondary">{{ pdf.formattedSize }}</span>
+                                                                    <small class="text-muted">
+                                                                        <i class="bi bi-clock"></i> {{ pdf.createdAt.format('d/m/Y à H:i') }}
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Actions -->
+                                                        <div class="d-flex gap-2">
+                                                            <a href="{{ path('app_configuration_pf_pdf_preview', {
+                                                                projet: projet.id, 
+                                                                path: pdf.encodedPath
+                                                            }) }}" 
+                                                               class="btn btn-sm btn-outline-secondary" 
+                                                               target="_blank">
+                                                                <i class="bi bi-eye"></i> Voir
+                                                            </a>
+                                                            <a href="{{ path('app_configuration_pf_pdf_download', {
+                                                                projet: projet.id, 
+                                                                path: pdf.encodedPath
+                                                            }) }}" 
+                                                               class="btn btn-sm btn-outline-primary" 
+                                                               target="_blank">
+                                                                <i class="bi bi-download"></i> Télécharger
+                                                            </a>
+                                                            <form method="POST" action="{{ path('app_projet_delete_pdf', {
+                                                                id: projet.id, 
+                                                                pdfId: pdf.id
+                                                            }) }}" 
+                                                                  class="d-inline"
+                                                                  onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce PDF ?')">
+                                                                <input type="hidden" name="_token" value="{{ csrf_token('delete_pdf_' ~ pdf.id) }}">
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                    <i class="bi bi-trash"></i> Supprimer
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="col-md-4">
+                                                        <!-- Aperçu miniature -->
+                                                        <div class="pdf-mini-preview">
+                                                            <iframe 
+                                                                src="{{ path('app_configuration_pf_pdf_preview', {
+                                                                    projet: projet.id, 
+                                                                    path: pdf.encodedPath
+                                                                }) }}" 
+                                                                width="100%" 
+                                                                height="150" 
+                                                                style="border: 1px solid #dee2e6; border-radius: 4px;"
+                                                                title="Aperçu {{ pdf.filename }}">
+                                                            </iframe>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        
+                                        {% if existingPdfs|length > 3 %}
+                                            <div class="text-center mt-3">
+                                                <a href="{{ path('app_projet_show', {id: projet.id}) }}#pdfs" 
+                                                   class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-three-dots"></i> Voir tous les PDFs ({{ existingPdfs|length }})
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <a href="{{ path('app_projet_show', {id: projet.id}) }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Retour au projet
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Validation du formulaire côté client
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                var forms = document.getElementsByClassName('needs-validation');
+                var generatePdfBtn = document.getElementById('generatePdfBtn');
+                var customValueInput = document.getElementById('custom_value');
+                
+                // Éléments pour le calcul automatique
+                var calculatedValueDisplay = document.getElementById('calculated_value_display');
+                var calculatedValueShow = document.getElementById('calculated_value_show');
+                var calculatedValueHidden = document.getElementById('calculated_value');
+                var coefficient = 1.5; // Coefficient de calcul
+                
+                // Fonction pour calculer et afficher la côte extérieur automatique
+                function updateCalculatedValue() {
+                    var value = parseFloat(customValueInput.value);
+                    if (value && value > 0) {
+                        var calculated = value * coefficient;
+                        calculatedValueShow.value = calculated.toFixed(2);
+                        calculatedValueHidden.value = calculated.toFixed(2);
+                        calculatedValueDisplay.style.display = 'block';
+                    } else {
+                        calculatedValueShow.value = '';
+                        calculatedValueHidden.value = '';
+                        calculatedValueDisplay.style.display = 'none';
+                    }
+                }
+                
+                // Validation pour le bouton PDF
+                if (generatePdfBtn && customValueInput) {
+                    generatePdfBtn.addEventListener('click', function(event) {
+                        var value = customValueInput.value;
+                        if (!value || parseFloat(value) <= 0) {
+                            event.preventDefault();
+                            customValueInput.setCustomValidity('Une côte interne est requise pour générer un PDF');
+                            customValueInput.reportValidity();
+                            return false;
+                        } else {
+                            customValueInput.setCustomValidity('');
+                        }
+                    });
+                    
+                    // Réinitialiser la validation et calculer la valeur quand l'utilisateur tape
+                    customValueInput.addEventListener('input', function() {
+                        customValueInput.setCustomValidity('');
+                        updateCalculatedValue();
+                    });
+                    
+                    // Calculer au chargement si une valeur existe
+                    updateCalculatedValue();
+                }
+                
+                var validation = Array.prototype.filter.call(forms, function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
+        
+        // Améliorer l'affichage responsive de l'aperçu PDF
+        function adjustPdfPreview() {
+            const iframe = document.querySelector('.pdf-preview-container iframe');
+            if (iframe) {
+                const container = iframe.closest('.pdf-preview-container');
+                const containerWidth = container.offsetWidth;
+                
+                // Ajuster la hauteur en fonction de la largeur pour maintenir un ratio correct
+                if (containerWidth < 600) {
+                    iframe.style.height = '300px';
+                } else if (containerWidth < 800) {
+                    iframe.style.height = '400px';
+                } else {
+                    iframe.style.height = '500px';
+                }
+            }
+        }
+        
+        // Ajuster au chargement et au redimensionnement
+        window.addEventListener('load', adjustPdfPreview);
+        window.addEventListener('resize', adjustPdfPreview);
+    </script>
+
+    <style>
+        .pdf-preview-container {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .pdf-preview-container:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .pdf-preview-container iframe {
+            display: block;
+            margin: 0 auto;
+        }
+        
+        /* Styles pour les PDFs existants */
+        .pdf-existing-item {
+            transition: background-color 0.2s ease;
+        }
+        
+        .pdf-existing-item:hover {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        
+        .pdf-mini-preview {
+            background: #f8f9fa;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .pdf-mini-preview iframe {
+            display: block;
+            margin: 0 auto;
+        }
+        
+        @media (max-width: 768px) {
+            .pdf-preview-container iframe {
+                height: 300px !important;
+            }
+            
+            .pdf-mini-preview iframe {
+                height: 120px !important;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .pdf-preview-container iframe {
+                height: 250px !important;
+            }
+            
+            .pdf-mini-preview {
+                margin-top: 15px;
+            }
+            
+            .pdf-mini-preview iframe {
+                height: 100px !important;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .pdf-preview-container iframe {
+                height: 250px !important;
+            }
+        }
+    </style>
+{% endblock %}

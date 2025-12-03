@@ -165,10 +165,35 @@ final class ProjetController extends AbstractController
         
         // Récupérer la configuration ConfPf si elle existe
         $confPf = null;
+        $generatedPdfs = [];
         if ($projet->getConfPfId()) {
             try {
                 $confPf = $this->entityManager->getRepository(\App\Entity\ConfPf::class)
                     ->find($projet->getConfPfId());
+                    
+                // Récupérer les PDFs générés depuis la base de données
+                if ($confPf) {
+                    $projetPdfs = $this->entityManager->getRepository(\App\Entity\ProjetPdf::class)
+                        ->findByProjetOrderedByDate($projet);
+                    
+                    foreach ($projetPdfs as $projetPdf) {
+                        // Vérifier que le fichier existe encore
+                        $fullPath = $this->getParameter('kernel.project_dir') . '/public' . $projetPdf->getFilePath();
+                        if (file_exists($fullPath)) {
+                            $generatedPdfs[] = [
+                                'id' => $projetPdf->getId(),
+                                'filename' => $projetPdf->getFileName(),
+                                'path' => $projetPdf->getFilePath(),
+                                'encodedPath' => $projetPdf->getEncodedPath(),
+                                'size' => $projetPdf->getFileSize(),
+                                'customValue' => $projetPdf->getCustomValue(),
+                                'created' => $projetPdf->getCreatedAt()->getTimestamp(),
+                                'createdAt' => $projetPdf->getCreatedAt(),
+                                'formattedSize' => $projetPdf->getFormattedSize(),
+                            ];
+                        }
+                    }
+                }
                     
                 // Pré-charger toutes les entités liées pour détecter les erreurs
                 if ($confPf) {
@@ -209,7 +234,51 @@ final class ProjetController extends AbstractController
             'projet' => $projet,
             'confPf' => $confPf,
             'photos' => $photos,
+            'generatedPdfs' => $generatedPdfs,
         ]);
+    }
+
+    #[Route('/{id}/pdf/{pdfId}/delete', name: 'app_projet_delete_pdf', methods: ['POST'], requirements: ['id' => '\d+', 'pdfId' => '\d+'])]
+    public function deletePdf(Projet $projet, int $pdfId, Request $request): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('delete_pdf_' . $pdfId, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+        }
+
+        // Récupérer le PDF
+        $projetPdf = $this->entityManager->getRepository(\App\Entity\ProjetPdf::class)->find($pdfId);
+        
+        if (!$projetPdf) {
+            $this->addFlash('error', 'PDF introuvable.');
+            return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+        }
+        
+        // Vérifier que le PDF appartient bien au projet
+        if ($projetPdf->getProjet()->getId() !== $projet->getId()) {
+            $this->addFlash('error', 'Accès non autorisé.');
+            return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
+        }
+
+        try {
+            // Supprimer le fichier physique
+            $fullPath = $this->getParameter('kernel.project_dir') . '/public' . $projetPdf->getFilePath();
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
+            }
+            
+            // Supprimer l'enregistrement de la base de données
+            $this->entityManager->remove($projetPdf);
+            $this->entityManager->flush();
+            
+            $this->addFlash('success', 'PDF "' . $projetPdf->getFileName() . '" supprimé avec succès.');
+            
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la suppression du PDF : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_projet_show', ['id' => $projet->getId()]);
     }
 
     /**
