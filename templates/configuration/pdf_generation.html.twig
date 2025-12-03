@@ -50,7 +50,7 @@
                                 <form method="POST" class="needs-validation" novalidate>
                                     <div class="mb-3">
                                         <label for="custom_value" class="form-label">
-                                            <strong>Côte interne (décimale)</strong>
+                                            <strong>Côte interne en mm</strong>
                                             <span class="text-muted">(optionnel pour générer un PDF)</span>
                                         </label>
                                         <div class="input-group">
@@ -59,17 +59,17 @@
                                                    id="custom_value" 
                                                    name="custom_value" 
                                                    value="{{ customValue ?? '' }}"
-                                                   step="0.01" 
-                                                   min="0.01"
-                                                   max="9999.99"
-                                                   placeholder="Ex: 123.45">
-                                            <span class="input-group-text">cm</span>
+                                                   step="1" 
+                                                   min="1"
+                                                   max="99999"
+                                                   placeholder="Ex: 1234">
+                                            <span class="input-group-text">mm</span>
                                         </div>
                                         <div class="form-text">
                                             Si vous saisissez une côte interne, elle sera inscrite sur le plan technique à l'emplacement prévu.
                                         </div>
                                         <div class="invalid-feedback">
-                                            Veuillez saisir une côte interne valide (nombre décimal positif).
+                                            Veuillez saisir une côte interne valide (nombre entier positif en mm).
                                         </div>
                                     </div>
                                     
@@ -85,7 +85,7 @@
                                                    id="calculated_value_show" 
                                                    readonly 
                                                    placeholder="--">
-                                            <span class="input-group-text">cm</span>
+                                            <span class="input-group-text">mm</span>
                                         </div>
                                         <input type="hidden" id="calculated_value" name="calculated_value" value="">
                                         <div class="form-text">
@@ -293,8 +293,8 @@
                     var value = parseFloat(customValueInput.value);
                     if (value && value > 0) {
                         var calculated = value * coefficient;
-                        calculatedValueShow.value = calculated.toFixed(2);
-                        calculatedValueHidden.value = calculated.toFixed(2);
+                        calculatedValueShow.value = calculated.toFixed(0);
+                        calculatedValueHidden.value = calculated.toFixed(0);
                         calculatedValueDisplay.style.display = 'block';
                     } else {
                         calculatedValueShow.value = '';

@@ -99,14 +99,14 @@ class PdfGeneratorService
         $pdf->StartTransform();
         $pdf->Rotate(90, $x1, $y1);
         $pdf->SetXY($x1, $y1);
-        $pdf->Cell(35, 8, number_format($customValue, 1) . ' mm', 0, 0, 'C', false);
+        $pdf->Cell(35, 8, number_format($customValue, 0) . ' mm', 0, 0, 'C', false);
         $pdf->StopTransform();
         
         // Ajouter la côte extérieur - côté droit
         $pdf->StartTransform();
         $pdf->Rotate(90, $x2, $y2);
         $pdf->SetXY($x2, $y2);
-        $pdf->Cell(35, 8, number_format($calculatedValue, 1) . ' mm', 0, 0, 'C', false);
+        $pdf->Cell(35, 8, number_format($calculatedValue, 0) . ' mm', 0, 0, 'C', false);
         $pdf->StopTransform();
     }
 
@@ -151,7 +151,7 @@ class PdfGeneratorService
             'Ouverture: ' . ($confPf->getOuverture() ? $confPf->getOuverture()->getNom() : 'Non définie'),
             'Dimensions: ' . ($confPf->getLargeur() ? $confPf->getLargeur() . ' x ' . $confPf->getHauteur() . ' mm' : 'Non définies'),
             'Quantité: ' . ($confPf->getQuantite() ?: 'Non définie'),
-            'Valeur spécifique: ' . number_format($customValue, 1) . ' mm',
+            'Valeur spécifique: ' . number_format($customValue, 0) . ' mm',
             'Date de génération: ' . date('d/m/Y H:i')
         ];
 

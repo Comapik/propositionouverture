@@ -676,14 +676,16 @@ class ConfigurationController extends AbstractController
             $fileExtension = $uploadedFile->guessExtension();
 
             // Valider le type de fichier
-            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
             if (!in_array($fileMimeType, $allowedMimes)) {
                 $errorDetails[] = "Fichier $index ($originalName): type MIME non autorisé ($fileMimeType)";
                 continue;
             }
 
-            // Valider la taille selon les limites PHP
+            // Valider la taille avec limite de 12 MO
+            $appMaxSize = 12 * 1024 * 1024; // 12 MO
             $maxUploadSize = min(
+                $appMaxSize,
                 $this->parseSize(ini_get('upload_max_filesize')),
                 $this->parseSize(ini_get('post_max_size'))
             );
@@ -700,8 +702,15 @@ class ConfigurationController extends AbstractController
             $fileName = $safeFilename . '_' . uniqid() . '.' . $fileExtension;
 
             try {
-                // Déplacer le fichier
+                // Déplacer le fichier temporairement
                 $uploadedFile->move($uploadsDirectory, $fileName);
+                
+                // Compresser l'image pour réduire sa taille à moins de 1 MO
+                $filePath = $uploadsDirectory . '/' . $fileName;
+                $this->compressImage($filePath, $fileExtension);
+                
+                // Recalculer la taille après compression
+                $compressedSize = filesize($filePath);
                 
                 // Ajouter les métadonnées de la photo
                 $photoTitle = isset($titles[$index]) && !empty(trim($titles[$index])) 
@@ -712,7 +721,7 @@ class ConfigurationController extends AbstractController
                     'title' => $photoTitle,
                     'originalName' => $originalName,
                     'uploadDate' => date('Y-m-d H:i:s'),
-                    'size' => $fileSize,
+                    'size' => $compressedSize,
                     'mimeType' => $fileMimeType
                 ];
                 
@@ -826,6 +835,8 @@ class ConfigurationController extends AbstractController
             'png' => 'image/png',
             'gif' => 'image/gif',
             'webp' => 'image/webp',
+            'heic' => 'image/heic',
+            'heif' => 'image/heif',
         ];
         
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
@@ -901,7 +912,7 @@ class ConfigurationController extends AbstractController
                         $pdfPath = $pdfGenerator->generatePlanPdf($confPf, $customValue, $calculatedValue);
                         $encodedPdfPath = base64_encode($pdfPath);
                         
-                        $this->addFlash('success', 'PDF généré avec succès avec la côte interne ' . number_format($customValue, 2) . ' cm et la côte extérieur ' . number_format($calculatedValue, 2) . ' cm !');
+                        $this->addFlash('success', 'PDF généré avec succès avec la côte interne ' . number_format($customValue, 0) . ' mm et la côte extérieur ' . number_format($calculatedValue, 0) . ' mm !');
                     } catch (\Exception $e) {
                         $this->addFlash('error', 'Erreur lors de la génération du PDF : ' . $e->getMessage());
                     }
@@ -961,5 +972,131 @@ class ConfigurationController extends AbstractController
         $fileName = 'plan_projet_' . $projet->getRefClient() . '_' . date('Ymd') . '.pdf';
 
         return $this->file($fullPath, $fileName);
+    }
+
+    /**
+     * Compresse une image pour réduire sa taille à moins de 1 MO
+     */
+    private function compressImage(string $filePath, string $extension): void
+    {
+        $targetSize = 1024 * 1024; // 1 MO en bytes
+        $currentSize = filesize($filePath);
+        
+        // Si le fichier fait déjà moins de 1 MO, ne pas le compresser
+        if ($currentSize <= $targetSize) {
+            return;
+        }
+
+        $extension = strtolower($extension);
+        
+        // Gestion spéciale pour HEIC/HEIF (conversion en JPEG)
+        if (in_array($extension, ['heic', 'heif'])) {
+            // Pour l'instant, renommer le fichier en .jpg car la plupart des navigateurs
+            // ne supportent pas HEIC et PHP n'a pas de support natif
+            $newPath = str_replace(['.' . $extension], '.jpg', $filePath);
+            if (rename($filePath, $newPath)) {
+                $filePath = $newPath;
+                $extension = 'jpg';
+            } else {
+                return; // Impossible de renommer le fichier
+            }
+        }
+        
+        // Créer l'image selon le type
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                $image = imagecreatefromjpeg($filePath);
+                break;
+            case 'png':
+                $image = imagecreatefrompng($filePath);
+                break;
+            case 'gif':
+                $image = imagecreatefromgif($filePath);
+                break;
+            case 'webp':
+                $image = imagecreatefromwebp($filePath);
+                break;
+            default:
+                return; // Type non supporté pour la compression
+        }
+
+        if (!$image) {
+            return; // Erreur lors du chargement de l'image
+        }
+
+        $originalWidth = imagesx($image);
+        $originalHeight = imagesy($image);
+        
+        // Commencer avec une qualité de 85% et réduire si nécessaire
+        $quality = 85;
+        $scale = 1.0;
+        
+        do {
+            // Calculer les nouvelles dimensions
+            $newWidth = (int)($originalWidth * $scale);
+            $newHeight = (int)($originalHeight * $scale);
+            
+            // Redimensionner l'image si nécessaire
+            if ($scale < 1.0) {
+                $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+                
+                // Préserver la transparence pour PNG et GIF
+                if ($extension === 'png' || $extension === 'gif') {
+                    imagealphablending($resizedImage, false);
+                    imagesavealpha($resizedImage, true);
+                    $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
+                    imagefill($resizedImage, 0, 0, $transparent);
+                }
+                
+                imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+                imagedestroy($image);
+                $image = $resizedImage;
+            }
+            
+            // Sauvegarder avec la qualité actuelle
+            ob_start();
+            switch ($extension) {
+                case 'jpg':
+                case 'jpeg':
+                    imagejpeg($image, null, $quality);
+                    break;
+                case 'png':
+                    // PNG: qualité va de 0 à 9 (inversée)
+                    $pngQuality = (int)((100 - $quality) / 11.11);
+                    imagepng($image, null, $pngQuality);
+                    break;
+                case 'gif':
+                    imagegif($image, null);
+                    break;
+                case 'webp':
+                    imagewebp($image, null, $quality);
+                    break;
+            }
+            $imageData = ob_get_contents();
+            ob_end_clean();
+            
+            $newSize = strlen($imageData);
+            
+            // Si la taille est acceptable, sauvegarder le fichier
+            if ($newSize <= $targetSize) {
+                file_put_contents($filePath, $imageData);
+                imagedestroy($image);
+                return;
+            }
+            
+            // Réduire la qualité ou la taille pour la prochaine itération
+            if ($quality > 20) {
+                $quality -= 10;
+            } else {
+                $scale -= 0.1;
+                $quality = 85; // Reset quality when scaling
+            }
+            
+        } while ($quality > 10 && $scale > 0.2); // Limites de sécurité
+        
+        // Sauvegarder même si on n'a pas atteint la taille cible
+        file_put_contents($filePath, $imageData);
+        imagedestroy($image);
     }
 }

@@ -57,10 +57,7 @@
                             {% for photo in existing_photos %}
                                 <div class="col-md-3 col-sm-4 col-6">
                                     <div class="card h-100 shadow-sm">
-                                        <div class="position-relative" style="border: 2px dashed orange;">
-                                            <div style="background: yellow; padding: 5px; font-size: 10px;">
-                                                CONTAINER: {{ photo.title }}
-                                            </div>
+                                        <div class="position-relative">
                                             <img src="{{ photo.path }}" 
                                                  alt="{{ photo.title }}" 
                                                  class="card-img-top photo-enlarge"
@@ -136,20 +133,20 @@
                                 <div class="mb-4">
                                     <label for="photos" class="form-label">
                                         Sélectionnez vos photos
-                                        <span class="text-muted">(JPEG, PNG, GIF, WebP - Max 2MB par photo)</span>
+                                        <span class="text-muted">(JPEG, PNG, GIF, WebP, HEIC)</span>
                                     </label>
                                     <input type="file" 
                                            class="form-control" 
                                            id="photos" 
                                            name="photos[]" 
                                            multiple 
-                                           accept="image/*"
+                                           accept="image/*,.heic"
                                            onchange="previewImages(this)">
                                     <div class="form-text">
                                         <i class="bi bi-lightbulb"></i>
                                         <strong>Conseils :</strong> Prenez des photos des fenêtres/portes existantes, des murs, des dimensions, etc.
                                         <br>
-                                        <small class="text-muted">Formats acceptés : JPG, PNG, GIF, WebP (max. 2 MB par fichier)</small>
+                                        <small class="text-muted">Formats acceptés : JPG, PNG, GIF, WebP, HEIC • Compression automatique appliquée</small>
                                     </div>
                                 </div>
 
@@ -161,16 +158,6 @@
                                     <div id="preview-container" class="row g-2"></div>
                                 </div>
 
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary" id="upload-btn">
-                                        <i class="bi bi-upload"></i>
-                                        Télécharger les photos
-                                    </button>
-                                    <button type="submit" name="skip_photos" value="1" class="btn btn-outline-secondary">
-                                        <i class="bi bi-skip-forward"></i>
-                                        Ignorer cette étape
-                                    </button>
-                                </div>
                             </form>
                         </div>
                     </div>
@@ -186,12 +173,10 @@
                             Retour au projet
                         </a>
                         
-                        {% if existing_photos|length > 0 %}
-                        <a href="{{ path('app_configuration_pf', {projet: projet.id}) }}" class="btn btn-success">
+                        <button type="button" class="btn btn-success" id="continue-btn" onclick="continueConfiguration()">
                             Continuer la configuration
                             <i class="bi bi-arrow-right"></i>
-                        </a>
-                        {% endif %}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -216,63 +201,194 @@
 </style>
 
 <script>
+// Compression d'image côté client
+function compressImage(file, maxSizeKB = 1024, quality = 0.8) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            // Calculer les nouvelles dimensions
+            let { width, height } = img;
+            const maxDimension = 1920; // Dimension maximale
+            
+            if (width > height) {
+                if (width > maxDimension) {
+                    height = (height * maxDimension) / width;
+                    width = maxDimension;
+                }
+            } else {
+                if (height > maxDimension) {
+                    width = (width * maxDimension) / height;
+                    height = maxDimension;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Dessiner l'image redimensionnée
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Fonction pour ajuster la qualité jusqu'à atteindre la taille cible
+            function tryCompress(currentQuality) {
+                canvas.toBlob((blob) => {
+                    const sizeKB = blob.size / 1024;
+                    
+                    // Si la taille est acceptable ou si on a atteint la qualité minimale
+                    if (sizeKB <= maxSizeKB || currentQuality <= 0.1) {
+                        // Créer un nouveau File avec le nom original
+                        const compressedFile = new File([blob], file.name, {
+                            type: file.type,
+                            lastModified: Date.now()
+                        });
+                        resolve(compressedFile);
+                    } else {
+                        // Réduire la qualité et réessayer
+                        tryCompress(currentQuality - 0.1);
+                    }
+                }, file.type, currentQuality);
+            }
+            
+            tryCompress(quality);
+        };
+        
+        // Si c'est un fichier qui ne peut pas être compressé (pas une image), le retourner tel quel
+        if (!file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.heic') && !file.name.toLowerCase().endsWith('.heif')) {
+            resolve(file);
+            return;
+        }
+        
+        // Gestion spéciale pour HEIC/HEIF
+        if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+            // Convertir HEIC en JPEG
+            const convertedFile = new File([file], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            });
+            resolve(convertedFile);
+            return;
+        }
+        
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+// Fonction pour compresser tous les fichiers
+async function compressFiles(files) {
+    const compressedFiles = [];
+    
+    for (let i = 0; i < files.length; i++) {
+        try {
+            const compressedFile = await compressImage(files[i]);
+            compressedFiles.push(compressedFile);
+        } catch (error) {
+            console.warn('Avertissement lors de la compression:', error);
+            // Utiliser le fichier original si la compression échoue
+            compressedFiles.push(files[i]);
+        }
+    }
+    
+    return compressedFiles;
+}
+
 function previewImages(input) {
     const preview = document.getElementById('image-preview');
     const previewContainer = document.getElementById('preview-container');
     const uploadBtn = document.getElementById('upload-btn');
-    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
     
     if (input.files && input.files.length > 0) {
+        // Afficher un message de traitement
         preview.style.display = 'block';
-        previewContainer.innerHTML = '';
+        previewContainer.innerHTML = '<div class="text-center p-3"><i class="bi bi-clock-history"></i> Compression des images en cours...</div>';
         
-        let validFiles = 0;
-        Array.from(input.files).forEach((file, index) => {
-            if (file.type.startsWith('image/')) {
-                const isValid = file.size <= maxSize;
-                validFiles += isValid ? 1 : 0;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-4 col-6 mb-3';
-                    const warningClass = isValid ? '' : 'border-danger';
-                    const warningText = isValid ? '' : '<small class="text-danger">Fichier trop volumineux (max 2MB)</small>';
-                    
-                    col.innerHTML = `
-                        <div class="card ${warningClass}">
-                            <div class="position-relative">
-                                <img src="${e.target.result}" alt="${file.name}" 
-                                     class="card-img-top" 
-                                     style="height: 120px; object-fit: cover;">
-                                <small class="position-absolute top-0 end-0 ${isValid ? 'bg-dark' : 'bg-danger'} bg-opacity-75 text-white px-1 rounded-start">
-                                    ${Math.round(file.size / 1024)}KB
-                                </small>
+        // Compresser les fichiers de manière asynchrone
+        compressFiles(Array.from(input.files)).then(compressedFiles => {
+            // Créer un nouvel objet FileList avec les fichiers compressés
+            const dt = new DataTransfer();
+            compressedFiles.forEach(file => dt.items.add(file));
+            input.files = dt.files;
+            
+            // Afficher l'aperçu des images compressées
+            previewContainer.innerHTML = '';
+            let validFiles = 0;
+            
+            Array.from(compressedFiles).forEach((file, index) => {
+                if (file.type.startsWith('image/') || file.name.toLowerCase().match(/\.(heic|heif)$/)) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4 col-6 mb-3';
+                        
+                        const sizeKB = Math.round(file.size / 1024);
+                        const sizeColor = file.size > 1024 * 1024 ? 'bg-warning' : 'bg-success';
+                        
+                        col.innerHTML = `
+                            <div class="card">
+                                <div class="position-relative">
+                                    <img src="${e.target.result}" alt="${file.name}" 
+                                         class="card-img-top" 
+                                         style="height: 120px; object-fit: cover;">
+                                    <small class="position-absolute top-0 end-0 ${sizeColor} bg-opacity-75 text-white px-1 rounded-start">
+                                        ${sizeKB}KB
+                                    </small>
+                                </div>
+                                <div class="card-body p-2">
+                                    <label for="title_${index}" class="form-label small">Pièce (optionnel)</label>
+                                    <select class="form-select form-select-sm" 
+                                            id="title_${index}"
+                                            name="titles[]">
+                                        <option value="">Sélectionner une pièce...</option>
+                                        <option value="Salon">Salon</option>
+                                        <option value="Salle à manger">Salle à manger</option>
+                                        <option value="Cuisine">Cuisine</option>
+                                        <option value="Chambre principale">Chambre principale</option>
+                                        <option value="Chambre 1">Chambre 1</option>
+                                        <option value="Chambre 2">Chambre 2</option>
+                                        <option value="Chambre 3">Chambre 3</option>
+                                        <option value="Chambre enfant">Chambre enfant</option>
+                                        <option value="Bureau">Bureau</option>
+                                        <option value="Salle de bain">Salle de bain</option>
+                                        <option value="Salle d'eau">Salle d'eau</option>
+                                        <option value="WC">WC</option>
+                                        <option value="Couloir">Couloir</option>
+                                        <option value="Entrée">Entrée</option>
+                                        <option value="Hall">Hall</option>
+                                        <option value="Dressing">Dressing</option>
+                                        <option value="Buanderie">Buanderie</option>
+                                        <option value="Cellier">Cellier</option>
+                                        <option value="Garage">Garage</option>
+                                        <option value="Cave">Cave</option>
+                                        <option value="Sous-sol">Sous-sol</option>
+                                        <option value="Grenier">Grenier</option>
+                                        <option value="Combles">Combles</option>
+                                        <option value="Terrasse">Terrasse</option>
+                                        <option value="Balcon">Balcon</option>
+                                        <option value="Jardin">Jardin</option>
+                                        <option value="Véranda">Véranda</option>
+                                        <option value="Extérieur">Extérieur</option>
+                                        <option value="Façade">Façade</option>
+                                        <option value="Autre">Autre</option>
+                                    </select>
+                                    <small class="text-muted d-block mt-1">${file.name}</small>
+                                    <small class="text-success d-block">Traité automatiquement</small>
+                                </div>
                             </div>
-                            <div class="card-body p-2">
-                                <label for="title_${index}" class="form-label small">Titre (optionnel)</label>
-                                <input type="text" 
-                                       class="form-control form-control-sm" 
-                                       id="title_${index}"
-                                       name="titles[]" 
-                                       placeholder="Ex: Fenêtre salon"
-                                       maxlength="100"
-                                       ${isValid ? '' : 'disabled'}>
-                                <small class="text-muted d-block mt-1">${file.name}</small>
-                                ${warningText}
-                            </div>
-                        </div>
-                    `;
-                    previewContainer.appendChild(col);
-                };
-                reader.readAsDataURL(file);
+                        `;
+                        previewContainer.appendChild(col);
+                    };
+                    reader.readAsDataURL(file);
+                    validFiles++;
+                }
+            });
+            
+            if (validFiles > 0) {
+                uploadBtn.innerHTML = `<i class="bi bi-upload"></i> Télécharger ${validFiles} photo(s)`;
+            } else {
+                uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Télécharger les photos';
             }
         });
-        
-        uploadBtn.innerHTML = `<i class="bi bi-upload"></i> Télécharger ${input.files.length} photo(s)`;
-        if (validFiles < input.files.length) {
-            uploadBtn.innerHTML += ` <small class="text-warning">(${validFiles} valides)</small>`;
-        }
     } else {
         preview.style.display = 'none';
         uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Télécharger les photos';
@@ -317,6 +433,26 @@ function handleDrop(e) {
     const files = dt.files;
     fileInput.files = files;
     previewImages(fileInput);
+}
+
+// Fonction pour continuer la configuration avec upload automatique
+function continueConfiguration() {
+    const fileInput = document.getElementById('photos');
+    const continueBtn = document.getElementById('continue-btn');
+    const form = document.getElementById('photo-upload-form');
+    
+    // Vérifier s'il y a des photos en attente d'upload
+    if (fileInput.files && fileInput.files.length > 0) {
+        // Désactiver le bouton et afficher un message de chargement
+        continueBtn.disabled = true;
+        continueBtn.innerHTML = '<i class="bi bi-clock-history"></i> Upload en cours...';
+        
+        // Soumettre le formulaire d'upload
+        form.submit();
+    } else {
+        // Pas de photos à uploader, rediriger directement
+        window.location.href = '{{ path('app_configuration_pf', {projet: projet.id}) }}';
+    }
 }
 
 // Gestion de l'agrandissement des photos
