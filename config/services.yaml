@@ -29,3 +29,7 @@ services:
     App\Form\CouleurSelectionType:
         arguments:
             $entityManager: '@doctrine.orm.entity_manager'
+
+    App\Command\CleanupOrphanPdfsCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
