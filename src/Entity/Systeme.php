@@ -38,10 +38,15 @@ class Systeme
     #[ORM\OneToMany(mappedBy: 'systeme', targetEntity: ConfPf::class)]
     private Collection $confPfs;
 
+    #[ORM\ManyToMany(targetEntity: TypeFenetrePorte::class, inversedBy: 'systemes')]
+    #[ORM\JoinTable(name: 'systeme_type_fenetre_porte')]
+    private Collection $typesFenetrePorte;
+
     public function __construct()
     {
         $this->ouvertures = new ArrayCollection();
         $this->confPfs = new ArrayCollection();
+        $this->typesFenetrePorte = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -135,6 +140,30 @@ class Systeme
                 $confPf->setSysteme(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, TypeFenetrePorte>
+     */
+    public function getTypesFenetrePorte(): Collection
+    {
+        return $this->typesFenetrePorte;
+    }
+
+    public function addTypeFenetrePorte(TypeFenetrePorte $typeFenetrePorte): static
+    {
+        if (!$this->typesFenetrePorte->contains($typeFenetrePorte)) {
+            $this->typesFenetrePorte->add($typeFenetrePorte);
+        }
+
+        return $this;
+    }
+
+    public function removeTypeFenetrePorte(TypeFenetrePorte $typeFenetrePorte): static
+    {
+        $this->typesFenetrePorte->removeElement($typeFenetrePorte);
 
         return $this;
     }

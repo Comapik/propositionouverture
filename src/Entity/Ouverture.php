@@ -45,9 +45,13 @@ class Ouverture
     #[ORM\ManyToMany(targetEntity: Systeme::class, mappedBy: 'ouvertures')]
     private Collection $systemes;
 
+    #[ORM\ManyToMany(targetEntity: TypeFenetrePorte::class, mappedBy: 'ouvertures')]
+    private Collection $typesFenetrePorte;
+
     public function __construct()
     {
         $this->systemes = new ArrayCollection();
+        $this->typesFenetrePorte = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -110,6 +114,33 @@ class Ouverture
     {
         if ($this->systemes->removeElement($systeme)) {
             $systeme->removeOuverture($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, TypeFenetrePorte>
+     */
+    public function getTypesFenetrePorte(): Collection
+    {
+        return $this->typesFenetrePorte;
+    }
+
+    public function addTypeFenetrePorte(TypeFenetrePorte $typeFenetrePorte): static
+    {
+        if (!$this->typesFenetrePorte->contains($typeFenetrePorte)) {
+            $this->typesFenetrePorte->add($typeFenetrePorte);
+            $typeFenetrePorte->addOuverture($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTypeFenetrePorte(TypeFenetrePorte $typeFenetrePorte): static
+    {
+        if ($this->typesFenetrePorte->removeElement($typeFenetrePorte)) {
+            $typeFenetrePorte->removeOuverture($this);
         }
 
         return $this;

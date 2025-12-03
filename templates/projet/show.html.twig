@@ -110,6 +110,80 @@
                         </div>
                     {% endif %}
                     
+                    <!-- Section Photos du projet -->
+                    {% if photos is defined and photos|length > 0 %}
+                        <hr>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="text-primary mb-0">
+                                    <i class="bi bi-images"></i>
+                                    Photos du projet ({{ photos|length }})
+                                </h5>
+                                <a href="{{ path('app_configuration_pf_photos', {projet: projet.id}) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus-circle"></i> Gérer les photos
+                                </a>
+                            </div>
+                            
+                            <div class="row g-3">
+                                {% for photo in photos|slice(0, 6) %}
+                                    <div class="col-sm-6 col-md-4 col-lg-3">
+                                        <div class="card h-100 shadow-sm">
+                                            <img src="{{ photo.path }}" 
+                                                 alt="{{ photo.title }}" 
+                                                 class="card-img-top project-photo"
+                                                 style="height: 120px; object-fit: cover; cursor: pointer;"
+                                                 data-photo-src="{{ photo.path }}"
+                                                 data-photo-title="{{ photo.title }}"
+                                                 data-photo-filename="{{ photo.originalName }}"
+                                                 data-photo-date="{{ photo.uploadDate ? photo.uploadDate|date('d/m/Y à H:i') : '' }}">
+                                            <div class="card-body p-2">
+                                                <h6 class="card-title mb-1 text-truncate" style="font-size: 0.85rem;" title="{{ photo.title }}">
+                                                    {{ photo.title }}
+                                                </h6>
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                    {{ (photo.size / 1024)|round(0) }}KB
+                                                    {% if photo.uploadDate %}
+                                                        • {{ photo.uploadDate|date('d/m/Y') }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                
+                                {% if photos|length > 6 %}
+                                    <div class="col-12">
+                                        <div class="text-center mt-2">
+                                            <a href="{{ path('app_configuration_pf_photos', {projet: projet.id}) }}" 
+                                               class="btn btn-outline-secondary btn-sm">
+                                                <i class="bi bi-three-dots"></i> Voir toutes les photos ({{ photos|length }})
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <hr>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="text-muted mb-0">
+                                    <i class="bi bi-images"></i>
+                                    Photos du projet
+                                </h5>
+                                <a href="{{ path('app_configuration_pf_photos', {projet: projet.id}) }}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Ajouter des photos
+                                </a>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                Aucune photo n'a encore été ajoutée à ce projet.
+                            </div>
+                        </div>
+                    {% endif %}
+                    
                     <hr>
                     <div class="row">
                         <div class="col-md-12 mb-3">
@@ -253,6 +327,15 @@
                                                 <span class="badge bg-info text-white fs-6">{{ confPf.systeme.nom }}</span>
                                             </div>
                                         </div>
+                                    {% endif %}
+
+                                    {% if confPf.typeFenetrePorte %}
+                                        <div class="mb-3">
+                                            <strong class="text-dark">Type fenêtre/porte :</strong>
+                                            <div class="d-flex align-items-center mt-1">
+                                                <span class="badge bg-primary text-white fs-6">{{ confPf.typeFenetrePorte.nom }}</span>
+                                            </div>
+                                        </div>
                                     {% endif %}                                                    {% if confPf.notes %}
                                                         <div class="mb-2">
                                                             <strong class="text-muted">Notes :</strong>
@@ -328,14 +411,44 @@
                                                     {% endif %}
                                                 </div>
                                                 
+                                                {# Affichage des spécifications techniques détaillées #}
+                                                {% if confPf.quantite or confPf.largeur or confPf.hauteur %}
+                                                    <div class="mt-3">
+                                                        <h6 class="text-dark mb-3">
+                                                            <i class="bi bi-list-check me-2"></i>
+                                                            Spécifications techniques
+                                                        </h6>
+                                                        <div class="row">
+                                                            {% if confPf.quantite %}
+                                                                <div class="col-md-4 mb-2">
+                                                                    <strong class="text-dark">Quantité :</strong>
+                                                                    <span class="badge bg-secondary">{{ confPf.quantite }}</span>
+                                                                </div>
+                                                            {% endif %}
+                                                            {% if confPf.largeur %}
+                                                                <div class="col-md-4 mb-2">
+                                                                    <strong class="text-dark">Largeur :</strong>
+                                                                    <span class="badge bg-secondary">{{ confPf.largeur }} mm</span>
+                                                                </div>
+                                                            {% endif %}
+                                                            {% if confPf.hauteur %}
+                                                                <div class="col-md-4 mb-2">
+                                                                    <strong class="text-dark">Hauteur :</strong>
+                                                                    <span class="badge bg-secondary">{{ confPf.hauteur }} mm</span>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                                
                                                 <div class="mt-3">
-                                                    <a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" 
-                                                       class="btn btn-sm btn-outline-primary">
-                                                        <i class="bi bi-eye"></i> Voir détails
-                                                    </a>
                                                     <a href="{{ path('app_configuration_pf', {projet: projet.id}) }}" 
                                                        class="btn btn-sm btn-outline-secondary">
                                                         <i class="bi bi-pencil"></i> Modifier
+                                                    </a>
+                                                    <a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" 
+                                                       class="btn btn-sm btn-outline-info">
+                                                        <i class="bi bi-gear"></i> Configuration avancée
                                                     </a>
                                                     {% if confPf.couleurInterieur or confPf.couleurExterieur %}
                                                         <a href="{{ path('app_configuration_pf_couleurs', {projet: projet.id, confpf: confPf.id}) }}" 
@@ -525,6 +638,15 @@
     padding: 0.2em 0.4em;
 }
 
+/* Styles pour les photos du projet */
+.project-photo {
+    transition: transform 0.2s ease;
+}
+
+.project-photo:hover {
+    transform: scale(1.02);
+}
+
 /* Responsive pour les images de configuration */
 @media (max-width: 768px) {
     .config-image-container {
@@ -550,4 +672,49 @@
     }
 }
 </style>
+
+<!-- Modal simple pour agrandir les photos -->
+<div class="modal fade" id="photoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalPhoto" src="" alt="" class="img-fluid rounded" style="max-height: 70vh;">
+                <div class="mt-3">
+                    <small class="text-muted d-block" id="modalFilename"></small>
+                    <small class="text-muted d-block" id="modalDate"></small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Gestion de l'agrandissement des photos
+document.addEventListener('DOMContentLoaded', function() {
+    const photoModal = document.getElementById('photoModal');
+    const modalImg = document.getElementById('modalPhoto');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalFilename = document.getElementById('modalFilename');
+    const modalDate = document.getElementById('modalDate');
+
+    document.querySelectorAll('.project-photo').forEach(img => {
+        img.addEventListener('click', function() {
+            modalImg.src = this.dataset.photoSrc;
+            modalTitle.textContent = this.dataset.photoTitle;
+            modalFilename.textContent = 'Fichier: ' + this.dataset.photoFilename;
+            modalDate.textContent = this.dataset.photoDate ? 'Ajouté le: ' + this.dataset.photoDate : '';
+            
+            const modal = new bootstrap.Modal(photoModal);
+            modal.show();
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des compatibilités - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-link-45deg me-2"></i>
+                    Gestion des compatibilités
+                </h2>
+                <a href="{{ path('app_temp_type_fenetre_porte_index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Retour aux types
+                </a>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Statistiques -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-primary">
+                                <i class="bi bi-collection"></i>
+                                Types
+                            </h5>
+                            <h2 class="text-primary">{{ types|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-info">
+                                <i class="bi bi-door-open"></i>
+                                Ouvertures
+                            </h5>
+                            <h2 class="text-info">{{ ouvertures|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-warning">
+                                <i class="bi bi-gear"></i>
+                                Systèmes
+                            </h5>
+                            <h2 class="text-warning">{{ systemes|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulaire d'ajout rapide -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Ajouter une compatibilité
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ path('app_admin_compatibilites_add') }}" method="post">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="type_id" class="form-label">Type de fenêtre/porte</label>
+                                <select name="type_id" id="type_id" class="form-select" required>
+                                    <option value="">Sélectionner un type...</option>
+                                    {% for type in types %}
+                                        <option value="{{ type.id }}">{{ type.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ouverture_id" class="form-label">Ouverture</label>
+                                <select name="ouverture_id" id="ouverture_id" class="form-select" required>
+                                    <option value="">Sélectionner une ouverture...</option>
+                                    {% for ouverture in ouvertures %}
+                                        <option value="{{ ouverture.id }}">{{ ouverture.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="systeme_id" class="form-label">Système</label>
+                                <select name="systeme_id" id="systeme_id" class="form-select" required>
+                                    <option value="">Sélectionner un système...</option>
+                                    {% for systeme in systemes %}
+                                        <option value="{{ systeme.id }}">{{ systeme.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus"></i> Ajouter la compatibilité
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Liste des types avec lien vers gestion détaillée -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list me-2"></i>
+                        Types de fenêtre/porte
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if types is empty %}
+                        <p class="text-muted text-center py-4">
+                            <i class="bi bi-inbox display-4"></i><br>
+                            Aucun type de fenêtre/porte trouvé.
+                        </p>
+                    {% else %}
+                        <div class="row">
+                            {% for type in types %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card border-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ type.nom }}</h6>
+                                            <p class="text-muted small mb-2">
+                                                <i class="bi bi-link-45deg"></i>
+                                                {{ type.compatibilites|length }} compatibilités
+                                            </p>
+                                            <a href="{{ path('app_admin_compatibilites_type', {id: type.id}) }}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-gear"></i> Gérer
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

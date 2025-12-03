@@ -50,6 +50,9 @@ class ConfPf
     #[ORM\ManyToOne(inversedBy: 'confPfs')]
     private ?Systeme $systeme = null;
 
+    #[ORM\ManyToOne(inversedBy: 'confPfs')]
+    private ?TypeFenetrePorte $typeFenetrePorte = null;
+
     #[ORM\ManyToOne(inversedBy: 'confPfsInterieur')]
     private ?Couleur $couleurInterieur = null;
 
@@ -239,6 +242,17 @@ class ConfPf
     public function setSysteme(?Systeme $systeme): static
     {
         $this->systeme = $systeme;
+        return $this;
+    }
+
+    public function getTypeFenetrePorte(): ?TypeFenetrePorte
+    {
+        return $this->typeFenetrePorte;
+    }
+
+    public function setTypeFenetrePorte(?TypeFenetrePorte $typeFenetrePorte): static
+    {
+        $this->typeFenetrePorte = $typeFenetrePorte;
         return $this;
     }
 

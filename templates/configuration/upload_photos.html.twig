@@ -1,0 +1,366 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configuration Photos - {{ projet.refClient }}{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <!-- En-tête de la configuration -->
+            <div class="card mb-4 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="mb-0">
+                                <i class="bi bi-camera"></i>
+                                Étape 1/6 : Gestion des photos
+                            </h4>
+                            <small>Configuration Portes/Fenêtres - Projet {{ projet.refClient }}</small>
+                        </div>
+                        <div class="col-auto">
+                            <div class="progress" style="width: 150px; height: 8px;">
+                                <div class="progress-bar bg-light" role="progressbar" style="width: 16.67%" aria-valuenow="1" aria-valuemin="0" aria-valuemax="6"></div>
+                            </div>
+                            <small class="text-light">1/6</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Gérez les photos de la zone à équiper pour faciliter la configuration et améliorer la précision du devis.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Photos existantes du projet -->
+            {% if existing_photos|length > 0 %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <i class="bi bi-check-circle"></i>
+                                Photos déjà ajoutées ({{ existing_photos|length }})
+                            </h5>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#existingPhotos" aria-expanded="true">
+                                <i class="bi bi-eye"></i> Voir/Masquer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="collapse show" id="existingPhotos">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {% for photo in existing_photos %}
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="position-relative" style="border: 2px dashed orange;">
+                                            <div style="background: yellow; padding: 5px; font-size: 10px;">
+                                                CONTAINER: {{ photo.title }}
+                                            </div>
+                                            <img src="{{ photo.path }}" 
+                                                 alt="{{ photo.title }}" 
+                                                 class="card-img-top photo-enlarge"
+                                                 style="height: 150px; object-fit: cover; cursor: pointer;"
+                                                 data-photo-src="{{ photo.path }}"
+                                                 data-photo-title="{{ photo.title }}"
+                                                 data-photo-filename="{{ photo.originalName ?? photo.filename }}"
+                                                 data-photo-date="{{ photo.uploadDate ? photo.uploadDate|date('d/m/Y à H:i') : '' }}"
+                                                 >
+                                            <div class="position-absolute top-0 end-0 m-2">
+                                                <div class="dropdown">
+                                                    <button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="bi bi-three-dots"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <form method="post" 
+                                                                  action="{{ path('app_configuration_pf_delete_photo', {projet: projet.id, filename: photo.filename}) }}" 
+                                                                  class="d-inline"
+                                                                  onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')">
+                                                                <input type="hidden" name="_token" value="{{ csrf_token('delete_photo') }}">
+                                                                <button type="submit" class="dropdown-item text-danger">
+                                                                    <i class="bi bi-trash"></i> Supprimer
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body p-2">
+                                            <h6 class="card-title mb-1 text-truncate" title="{{ photo.title }}">
+                                                {{ photo.title }}
+                                            </h6>
+                                            <small class="text-muted d-block">{{ photo.originalName ?? photo.filename }}</small>
+                                            <small class="text-muted">
+                                                {{ (photo.size / 1024)|round(0) }}KB
+                                                {% if photo.uploadDate %}
+                                                    • {{ photo.uploadDate|date('d/m/Y') }}
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if existing_photos|length >= 8 %}
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Vous avez déjà {{ existing_photos|length }} photos. Vous pouvez en ajouter d'autres ci-dessous.
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Zone de téléchargement -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-cloud-upload"></i>
+                                Ajouter de nouvelles photos
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data" id="photo-upload-form">
+                                <div class="mb-4">
+                                    <label for="photos" class="form-label">
+                                        Sélectionnez vos photos
+                                        <span class="text-muted">(JPEG, PNG, GIF, WebP - Max 2MB par photo)</span>
+                                    </label>
+                                    <input type="file" 
+                                           class="form-control" 
+                                           id="photos" 
+                                           name="photos[]" 
+                                           multiple 
+                                           accept="image/*"
+                                           onchange="previewImages(this)">
+                                    <div class="form-text">
+                                        <i class="bi bi-lightbulb"></i>
+                                        <strong>Conseils :</strong> Prenez des photos des fenêtres/portes existantes, des murs, des dimensions, etc.
+                                        <br>
+                                        <small class="text-muted">Formats acceptés : JPG, PNG, GIF, WebP (max. 2 MB par fichier)</small>
+                                    </div>
+                                </div>
+
+                                <!-- Zone de prévisualisation avec titres -->
+                                <div id="image-preview" class="mb-4" style="display: none;">
+                                    <div class="col-12 mb-3">
+                                        <h6 class="text-muted">Aperçu des photos sélectionnées :</h6>
+                                    </div>
+                                    <div id="preview-container" class="row g-2"></div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary" id="upload-btn">
+                                        <i class="bi bi-upload"></i>
+                                        Télécharger les photos
+                                    </button>
+                                    <button type="submit" name="skip_photos" value="1" class="btn btn-outline-secondary">
+                                        <i class="bi bi-skip-forward"></i>
+                                        Ignorer cette étape
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('app_projet_show', {id: projet.id}) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i>
+                            Retour au projet
+                        </a>
+                        
+                        {% if existing_photos|length > 0 %}
+                        <a href="{{ path('app_configuration_pf', {projet: projet.id}) }}" class="btn btn-success">
+                            Continuer la configuration
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.card:hover {
+    transform: translateY(-1px);
+}
+
+.card-img-top:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+}
+</style>
+
+<script>
+function previewImages(input) {
+    const preview = document.getElementById('image-preview');
+    const previewContainer = document.getElementById('preview-container');
+    const uploadBtn = document.getElementById('upload-btn');
+    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
+    
+    if (input.files && input.files.length > 0) {
+        preview.style.display = 'block';
+        previewContainer.innerHTML = '';
+        
+        let validFiles = 0;
+        Array.from(input.files).forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const isValid = file.size <= maxSize;
+                validFiles += isValid ? 1 : 0;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-4 col-6 mb-3';
+                    const warningClass = isValid ? '' : 'border-danger';
+                    const warningText = isValid ? '' : '<small class="text-danger">Fichier trop volumineux (max 2MB)</small>';
+                    
+                    col.innerHTML = `
+                        <div class="card ${warningClass}">
+                            <div class="position-relative">
+                                <img src="${e.target.result}" alt="${file.name}" 
+                                     class="card-img-top" 
+                                     style="height: 120px; object-fit: cover;">
+                                <small class="position-absolute top-0 end-0 ${isValid ? 'bg-dark' : 'bg-danger'} bg-opacity-75 text-white px-1 rounded-start">
+                                    ${Math.round(file.size / 1024)}KB
+                                </small>
+                            </div>
+                            <div class="card-body p-2">
+                                <label for="title_${index}" class="form-label small">Titre (optionnel)</label>
+                                <input type="text" 
+                                       class="form-control form-control-sm" 
+                                       id="title_${index}"
+                                       name="titles[]" 
+                                       placeholder="Ex: Fenêtre salon"
+                                       maxlength="100"
+                                       ${isValid ? '' : 'disabled'}>
+                                <small class="text-muted d-block mt-1">${file.name}</small>
+                                ${warningText}
+                            </div>
+                        </div>
+                    `;
+                    previewContainer.appendChild(col);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        uploadBtn.innerHTML = `<i class="bi bi-upload"></i> Télécharger ${input.files.length} photo(s)`;
+        if (validFiles < input.files.length) {
+            uploadBtn.innerHTML += ` <small class="text-warning">(${validFiles} valides)</small>`;
+        }
+    } else {
+        preview.style.display = 'none';
+        uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Télécharger les photos';
+    }
+}
+
+// Gestion du drag and drop
+const form = document.getElementById('photo-upload-form');
+const fileInput = document.getElementById('photos');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    form.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    form.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    form.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    form.style.backgroundColor = '#f8f9fa';
+    form.style.border = '2px dashed #0d6efd';
+}
+
+function unhighlight(e) {
+    form.style.backgroundColor = '';
+    form.style.border = '';
+}
+
+form.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    fileInput.files = files;
+    previewImages(fileInput);
+}
+
+// Gestion de l'agrandissement des photos
+document.addEventListener('DOMContentLoaded', function() {
+    const photoModal = document.getElementById('photoModal');
+    const modalImg = document.getElementById('modalPhoto');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalFilename = document.getElementById('modalFilename');
+    const modalDate = document.getElementById('modalDate');
+
+    document.querySelectorAll('.photo-enlarge').forEach(img => {
+        img.addEventListener('click', function() {
+            modalImg.src = this.dataset.photoSrc;
+            modalTitle.textContent = this.dataset.photoTitle;
+            modalFilename.textContent = 'Fichier: ' + this.dataset.photoFilename;
+            modalDate.textContent = this.dataset.photoDate ? 'Ajouté le: ' + this.dataset.photoDate : '';
+            
+            const modal = new bootstrap.Modal(photoModal);
+            modal.show();
+        });
+    });
+});
+</script>
+
+<!-- Modal simple pour agrandir les photos -->
+<div class="modal fade" id="photoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalPhoto" src="" alt="" class="img-fluid rounded" style="max-height: 70vh;">
+                <div class="mt-3">
+                    <small class="text-muted d-block" id="modalFilename"></small>
+                    <small class="text-muted d-block" id="modalDate"></small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

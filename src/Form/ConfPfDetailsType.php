@@ -7,6 +7,7 @@ namespace App\Form;
 use App\Entity\ConfPf;
 use App\Entity\Fournisseur;
 use App\Entity\Systeme;
+use App\Entity\TypeFenetrePorte;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -106,6 +107,21 @@ class ConfPfDetailsType extends AbstractType
                 ],
                 'help' => 'Type de système et capotage (dépend du fournisseur)',
             ])
+            ->add('typeFenetrePorte', EntityType::class, [
+                'class' => TypeFenetrePorte::class,
+                'choice_label' => 'nom',
+                'label' => 'Type de fenêtre/porte',
+                'required' => false,
+                'placeholder' => 'Sélectionner un type...',
+                'expanded' => false,
+                'multiple' => false,
+                'choices' => $options['typesFenetrePorte'] ?? [],
+                'attr' => [
+                    'class' => 'form-select d-none', // Caché par défaut
+                    'data-type-fenetre-porte-select' => 'true',
+                ],
+                'help' => 'Choisissez le type de fenêtre ou porte (dépend du système sélectionné)',
+            ])
             ->add('position', TextType::class, [
                 'label' => 'Position',
                 'required' => false,
@@ -135,8 +151,10 @@ class ConfPfDetailsType extends AbstractType
         $resolver->setDefaults([
             'data_class' => ConfPf::class,
             'fournisseurs' => [],
+            'typesFenetrePorte' => [],
         ]);
 
         $resolver->setAllowedTypes('fournisseurs', 'array');
+        $resolver->setAllowedTypes('typesFenetrePorte', 'array');
     }
 }

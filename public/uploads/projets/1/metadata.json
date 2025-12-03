@@ -1,0 +1,23 @@
+{
+    "test_image_692eff3eaf70e.png": {
+        "title": "Image de test",
+        "originalName": "test_image.png",
+        "uploadDate": "2025-12-02 15:01:18",
+        "size": 70,
+        "mimeType": "image\/png"
+    },
+    "db3b1ba8-d11a-488a-b5ad-27446aa439a5_692f01621f3df.jpg": {
+        "title": "ensemble",
+        "originalName": "db3b1ba8-d11a-488a-b5ad-27446aa439a5.jpeg",
+        "uploadDate": "2025-12-02 15:10:26",
+        "size": 142418,
+        "mimeType": "image\/jpeg"
+    },
+    "db3b1ba8-d11a-488a-b5ad-27446aa439a5_692f068c1e059.jpg": {
+        "title": "Chambre 1",
+        "originalName": "db3b1ba8-d11a-488a-b5ad-27446aa439a5.jpeg",
+        "uploadDate": "2025-12-02 15:32:28",
+        "size": 142418,
+        "mimeType": "image\/jpeg"
+    }
+}

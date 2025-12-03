@@ -220,6 +220,51 @@
                                 </div>
                             </div>
 
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="form-group">
+                                        {{ form_label(form.typeFenetrePorte) }}
+                                        
+                                        <!-- Container pour les types de fenêtre/porte -->
+                                        <div id="type-fenetre-porte-container" class="mt-3">
+                                            {% if confpf.ouverture and form.typeFenetrePorte.vars.choices|length > 0 %}
+                                                <!-- Afficher les types disponibles directement -->
+                                                <div class="row">
+                                                    {% for choice in form.typeFenetrePorte.vars.choices %}
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input type-fenetre-porte-radio" 
+                                                                       type="radio" 
+                                                                       name="type_fenetre_porte_radio" 
+                                                                       id="type_{{ choice.value }}" 
+                                                                       value="{{ choice.value }}"
+                                                                       {% if confpf.typeFenetrePorte and confpf.typeFenetrePorte.id == choice.value %}checked{% endif %}>
+                                                                <label class="form-check-label" for="type_{{ choice.value }}">
+                                                                    <strong>{{ choice.label }}</strong>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <div class="alert alert-info text-center">
+                                                    <i class="bi bi-info-circle"></i> 
+                                                    Veuillez d'abord sélectionner un système pour voir les types de fenêtre/porte disponibles.
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Champ caché pour stocker la valeur sélectionnée -->
+                                        {{ form_widget(form.typeFenetrePorte) }}
+                                        
+                                        {% if form.typeFenetrePorte.vars.help %}
+                                            <small class="form-text text-muted">{{ form.typeFenetrePorte.vars.help }}</small>
+                                        {% endif %}
+                                        {{ form_errors(form.typeFenetrePorte) }}
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
@@ -483,7 +528,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mettre à jour le champ caché
         if (systemeSelect) {
             systemeSelect.value = systemeId;
+            // Déclencher l'événement change pour notifier les autres composants
+            systemeSelect.dispatchEvent(new Event('change'));
         }
+        
+        // Déclencher un événement personnalisé pour les types de fenêtre/porte
+        document.dispatchEvent(new CustomEvent('systemeSelected', {
+            detail: { systemeId: systemeId, systemeNom: systemeNom }
+        }));
         
         // Mettre à jour l'affichage visuel
         const allCards = document.querySelectorAll('.systeme-card');
@@ -510,6 +562,165 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         console.log('Système sélectionné:', systemeNom);
+    }
+
+    // Gestion de la sélection des types de fenêtre/porte basés sur le système
+    function loadTypesFenetrePorte(systemeId) {
+        const typeFenetrePorteContainer = document.getElementById('type-fenetre-porte-container');
+        const typeFenetrePorteSelect = document.querySelector('[name="conf_pf_details[typeFenetrePorte]"]');
+        
+        if (!typeFenetrePorteContainer || !systemeId) {
+            return;
+        }
+
+        // Afficher un indicateur de chargement
+        typeFenetrePorteContainer.innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <p class="mt-2 mb-0">Chargement des types de fenêtre/porte...</p>
+            </div>
+        `;
+
+        // Charger les types via AJAX
+        const ouvertureId = {{ confpf.ouverture ? confpf.ouverture.id : 'null' }};
+        let apiUrl = `{{ path('app_api_types_fenetre_porte_by_systeme', {systeme: '__SYSTEME_ID__'}) }}`
+            .replace('__SYSTEME_ID__', systemeId);
+        
+        // Ajouter l'ouverture si disponible
+        if (ouvertureId) {
+            apiUrl += `?ouverture=${ouvertureId}`;
+        }
+            
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(types => {
+                console.log('Types fenêtre/porte reçus:', types);
+                displayTypesFenetrePorteAsRadios(types, typeFenetrePorteSelect);
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des types:', error);
+                typeFenetrePorteContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Erreur lors du chargement des types de fenêtre/porte
+                    </div>
+                `;
+            });
+    }
+
+    // Afficher les types de fenêtre/porte comme boutons radio
+    function displayTypesFenetrePorteAsRadios(types, hiddenSelect) {
+        const container = document.getElementById('type-fenetre-porte-container');
+        
+        if (types.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Aucun type de fenêtre/porte disponible pour ce système.
+                </div>
+            `;
+            return;
+        }
+
+        let radioHtml = '<div class="row">';
+        types.forEach((type, index) => {
+            const isChecked = hiddenSelect && hiddenSelect.value == type.id ? 'checked' : '';
+            radioHtml += `
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input type-fenetre-porte-radio" 
+                               type="radio" 
+                               name="type_fenetre_porte_radio" 
+                               id="type_${type.id}" 
+                               value="${type.id}" 
+                               ${isChecked}>
+                        <label class="form-check-label" for="type_${type.id}">
+                            <strong>${type.nom}</strong>
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+        radioHtml += '</div>';
+        
+        container.innerHTML = radioHtml;
+        
+        // Ajouter les event listeners pour les boutons radio
+        container.querySelectorAll('.type-fenetre-porte-radio').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const hiddenField = document.querySelector('[name="conf_pf_details[typeFenetrePorte]"]');
+                if (this.checked && hiddenField) {
+                    hiddenField.value = this.value;
+                    console.log('Type fenêtre/porte sélectionné (AJAX):', this.value);
+                    
+                    // Déclencher l'événement change sur le champ caché pour notifier Symfony
+                    const changeEvent = new Event('change', { bubbles: true });
+                    hiddenField.dispatchEvent(changeEvent);
+                }
+            });
+        });
+    }
+
+    // Initialiser les event listeners pour les types déjà affichés au chargement
+    function initializeTypeFenetrePorteEventListeners() {
+        document.querySelectorAll('.type-fenetre-porte-radio').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const hiddenField = document.querySelector('[name="conf_pf_details[typeFenetrePorte]"]');
+                if (this.checked && hiddenField) {
+                    hiddenField.value = this.value;
+                    console.log('Type fenêtre/porte sélectionné:', this.value);
+                    
+                    // Déclencher l'événement change sur le champ caché pour notifier Symfony
+                    const changeEvent = new Event('change', { bubbles: true });
+                    hiddenField.dispatchEvent(changeEvent);
+                }
+            });
+        });
+    }
+    
+    // Appeler lors du chargement initial
+    initializeTypeFenetrePorteEventListeners();
+
+    // Écouter les changements du système pour charger les types
+    document.addEventListener('systemeSelected', function(event) {
+        const systemeId = event.detail.systemeId;
+        console.log('Événement système détecté, chargement des types pour:', systemeId);
+        loadTypesFenetrePorte(systemeId);
+    });
+
+    // Alternative: observer les changements du champ système caché
+    const systemeHiddenField = document.querySelector('[name="conf_pf_details[systeme]"]');
+    if (systemeHiddenField) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                    const systemeId = systemeHiddenField.value;
+                    if (systemeId) {
+                        loadTypesFenetrePorte(systemeId);
+                    }
+                }
+            });
+        });
+        
+        observer.observe(systemeHiddenField, {
+            attributes: true,
+            attributeFilter: ['value']
+        });
+
+        // Aussi écouter l'événement change
+        systemeHiddenField.addEventListener('change', function() {
+            const systemeId = this.value;
+            if (systemeId) {
+                loadTypesFenetrePorte(systemeId);
+            }
+        });
     }
 });
 </script>

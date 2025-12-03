@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Simple</title>
+    <style>
+        img {
+            border: 3px solid blue;
+            max-width: 200px;
+            background: #f0f0f0;
+        }
+        img.error {
+            border: 3px solid red !important;
+            background: #ffe6e6 !important;
+        }
+        img.success {
+            border: 3px solid green !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test d'affichage d'image simple</h1>
+    
+    <div style="margin: 20px 0;">
+        <h3>Image avec le même chemin que dans Symfony:</h3>
+        <img src="/uploads/projets/1/db3b1ba8-d11a-488a-b5ad-27446aa439a5_692f01621f3df.jpg" 
+             alt="Test image"
+             onerror="this.className='error'; this.alt='❌ Erreur de chargement';"
+             onload="this.className='success';">
+    </div>
+
+    <script>
+        console.log('Page chargée');
+        document.querySelectorAll('img').forEach(img => {
+            img.addEventListener('load', () => console.log('✅ Image chargée:', img.src));
+            img.addEventListener('error', () => console.error('❌ Erreur image:', img.src));
+        });
+    </script>
+</body>
+</html>

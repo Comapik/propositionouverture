@@ -1,0 +1,176 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Compatibilités {{ type.nom }} - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-link-45deg me-2"></i>
+                    Compatibilités : {{ type.nom }}
+                </h2>
+                <a href="{{ path('app_admin_compatibilites_index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Retour à la liste
+                </a>
+            </div>
+
+            <!-- Messages flash -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <!-- Statistiques du type -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-success">
+                                <i class="bi bi-check-circle"></i>
+                                Compatibilités
+                            </h5>
+                            <h2 class="text-success">{{ compatibilites|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-info">
+                                <i class="bi bi-door-open"></i>
+                                Ouvertures compatibles
+                            </h5>
+                            <h2 class="text-info">{{ compatibilitesByOuverture|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <h5 class="card-title text-warning">
+                                <i class="bi bi-gear"></i>
+                                Systèmes compatibles
+                            </h5>
+                            {% set systemes_count = 0 %}
+                            {% for ouverture, compats in compatibilitesByOuverture %}
+                                {% for compat in compats %}
+                                    {% set systemes_count = systemes_count + 1 %}
+                                {% endfor %}
+                            {% endfor %}
+                            <h2 class="text-warning">{{ systemes_count }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ajout en lot -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle-fill me-2"></i>
+                        Ajouter des compatibilités en lot
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ path('app_admin_compatibilites_bulk_add') }}" method="post">
+                        <input type="hidden" name="type_id" value="{{ type.id }}">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Ouvertures</label>
+                                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    {% for ouverture in ouvertures %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="ouverture_ids[]" value="{{ ouverture.id }}" 
+                                                   id="ouverture_{{ ouverture.id }}">
+                                            <label class="form-check-label small" for="ouverture_{{ ouverture.id }}">
+                                                {{ ouverture.nom }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Systèmes</label>
+                                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    {% for systeme in systemes %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="systeme_ids[]" value="{{ systeme.id }}" 
+                                                   id="systeme_{{ systeme.id }}">
+                                            <label class="form-check-label small" for="systeme_{{ systeme.id }}">
+                                                {{ systeme.nom }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-plus-square"></i> Ajouter les compatibilités
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Liste des compatibilités existantes -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check me-2"></i>
+                        Compatibilités existantes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if compatibilites is empty %}
+                        <p class="text-muted text-center py-4">
+                            <i class="bi bi-inbox display-4"></i><br>
+                            Aucune compatibilité configurée pour ce type.
+                        </p>
+                    {% else %}
+                        {% for ouvertureNom, compats in compatibilitesByOuverture %}
+                            <div class="mb-4">
+                                <h6 class="text-primary mb-3">
+                                    <i class="bi bi-door-open me-1"></i>
+                                    {{ ouvertureNom }}
+                                    <span class="badge bg-primary ms-2">{{ compats|length }}</span>
+                                </h6>
+                                
+                                <div class="row">
+                                    {% for compat in compats %}
+                                        <div class="col-md-6 col-lg-4 mb-2">
+                                            <div class="d-flex justify-content-between align-items-center p-2 border rounded bg-light">
+                                                <span class="small">
+                                                    <i class="bi bi-gear me-1"></i>
+                                                    {{ compat.systeme.nom }}
+                                                </span>
+                                                <form action="{{ path('app_admin_compatibilites_remove', {id: compat.id}) }}" 
+                                                      method="post" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                            onclick="return confirm('Supprimer cette compatibilité ?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
