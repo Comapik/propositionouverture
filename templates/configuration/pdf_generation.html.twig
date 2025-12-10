@@ -46,30 +46,477 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <h5>Saisie des dimensions</h5>
+                                <h5>Génération du plan technique</h5>
                                 <form method="POST" class="needs-validation" novalidate>
-                                    <div class="mb-3">
-                                        <label for="custom_value" class="form-label">
-                                            <strong>Côte interne en mm</strong>
-                                            <span class="text-muted">(optionnel pour générer un PDF)</span>
+                                    
+                                    <!-- Sélection du schéma PDF -->
+                                    {% if availableSchemas is defined and availableSchemas|length > 0 %}
+                                    <div class="mb-4">
+                                        <label class="form-label">
+                                            <strong><i class="fas fa-layer-group text-primary"></i> Choisissez un schéma de plan</strong>
+                                            <span class="text-danger">*</span>
                                         </label>
-                                        <div class="input-group">
-                                            <input type="number" 
-                                                   class="form-control" 
-                                                   id="custom_value" 
-                                                   name="custom_value" 
-                                                   value="{{ customValue ?? '' }}"
-                                                   step="1" 
-                                                   min="1"
-                                                   max="99999"
-                                                   placeholder="Ex: 1234">
-                                            <span class="input-group-text">mm</span>
-                                        </div>
-                                        <div class="form-text">
-                                            Si vous saisissez une côte interne, elle sera inscrite sur le plan technique à l'emplacement prévu.
+                                        <div class="row">
+                                            {% for schema in availableSchemas %}
+                                            <div class="col-12 col-md-6 col-lg-4 mb-3">
+                                                <div class="schema-option">
+                                                    <input type="radio" 
+                                                           class="btn-check" 
+                                                           name="pdf_schema_id" 
+                                                           id="schema_{{ schema.id }}" 
+                                                           value="{{ schema.id }}"
+                                                           {% if selectedSchemaId == schema.id or (not selectedSchemaId and loop.first) %}checked{% endif %}
+                                                           required>
+                                                    <label class="btn btn-outline-secondary d-flex flex-column align-items-center p-3 h-100" for="schema_{{ schema.id }}">
+                                                        {% if schema.previewImage %}
+                                                        <img src="{{ schema.previewImage }}" 
+                                                             alt="{{ schema.nom }}" 
+                                                             class="schema-preview-img mb-2"
+                                                             style="max-width: 80px; max-height: 60px; object-fit: contain;">
+                                                        {% else %}
+                                                        <i class="fas fa-file-pdf text-muted mb-2" style="font-size: 3rem;"></i>
+                                                        {% endif %}
+                                                        <strong class="text-center">{{ schema.nom }}</strong>
+                                                        {% if schema.description %}
+                                                        <small class="text-muted text-center mt-1">{{ schema.description }}</small>
+                                                        {% endif %}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
                                         </div>
                                         <div class="invalid-feedback">
-                                            Veuillez saisir une côte interne valide (nombre entier positif en mm).
+                                            Veuillez sélectionner un schéma de plan avant de continuer.
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        Aucun schéma PDF n'est disponible pour le moment. Contactez l'administrateur.
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="mb-3">
+                                        <!-- Champs standard pour tous les schémas sauf "pose en applique sans tapées" -->
+                                        <div id="standard_fields">
+                                            <label for="custom_value" class="form-label">
+                                                <strong>Côte interne en mm</strong>
+                                                <span class="text-muted">(optionnel pour générer un PDF)</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" 
+                                                       class="form-control" 
+                                                       id="custom_value" 
+                                                       name="custom_value" 
+                                                       value="{{ customValue ?? '' }}"
+                                                       step="1" 
+                                                       min="1"
+                                                       max="99999"
+                                                       placeholder="Ex: 1234">
+                                                <span class="input-group-text">mm</span>
+                                            </div>
+                                            <div class="form-text">
+                                                Si vous saisissez une côte interne, elle sera inscrite sur le plan technique à l'emplacement prévu.
+                                            </div>
+                                            <div class="invalid-feedback">
+                                                Veuillez saisir une côte interne valide (nombre entier positif en mm).
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Champs spécifiques pour "pose en applique sans tapées" -->
+                                        <div id="applique_sans_tapees_fields" style="display: none;">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label for="largeur_tableau" class="form-label">
+                                                        <strong>Largeur Tableaux finis</strong>
+                                                        <span class="text-danger">*</span>
+                                                    </label>
+                                                    <div class="input-group">
+                                                        <input type="number" 
+                                                               class="form-control" 
+                                                               id="largeur_tableau" 
+                                                               name="largeur_tableau" 
+                                                               step="1" 
+                                                               min="1"
+                                                               max="99999"
+                                                               placeholder="Ex: 1200">
+                                                        <span class="input-group-text">mm</span>
+                                                    </div>
+                                                    <div class="invalid-feedback">
+                                                        Veuillez saisir une largeur valide.
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="hauteur_tableau" class="form-label">
+                                                        <strong>Hauteur Tableaux finis</strong>
+                                                        <span class="text-danger">*</span>
+                                                    </label>
+                                                    <div class="input-group">
+                                                        <input type="number" 
+                                                               class="form-control" 
+                                                               id="hauteur_tableau" 
+                                                               name="hauteur_tableau" 
+                                                               step="1" 
+                                                               min="1"
+                                                               max="99999"
+                                                               placeholder="Ex: 1500">
+                                                        <span class="input-group-text">mm</span>
+                                                    </div>
+                                                    <div class="invalid-feedback">
+                                                        Veuillez saisir une hauteur valide.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Largeur Fabrication calculée automatiquement -->
+                                            <div class="mt-3" id="largeur_fabrication_display" style="display: none;">
+                                                <label class="form-label">
+                                                    <strong>Largeur Fabrication calculée automatiquement</strong>
+                                                    <span class="text-muted">(Largeur Tableaux + 60mm)</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="text" 
+                                                           class="form-control bg-light" 
+                                                           id="largeur_fabrication_show" 
+                                                           readonly 
+                                                           placeholder="--">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <input type="hidden" id="largeur_fabrication" name="largeur_fabrication" value="">
+                                            </div>
+                                            
+                                            <!-- Hauteur Fabrication calculée automatiquement -->
+                                            <div class="mt-3" id="hauteur_fabrication_display" style="display: none;">
+                                                <label class="form-label">
+                                                    <strong>Hauteur Fabrication calculée automatiquement</strong>
+                                                    <span class="text-muted">(Hauteur Tableaux + 30mm)</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="text" 
+                                                           class="form-control bg-light" 
+                                                           id="hauteur_fabrication_show" 
+                                                           readonly 
+                                                           placeholder="--">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <input type="hidden" id="hauteur_fabrication" name="hauteur_fabrication" value="">
+                                            </div>
+                                            
+                                            <div class="form-text mt-2">
+                                                Ces dimensions correspondent aux tableaux finis pour la pose en applique sans tapées.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Champs spécifiques pour "Pose tunnelle" -->
+                                    <div id="pose_tunnelle_fields" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="largeur_tableau_tunnelle" class="form-label">
+                                                    <strong>Largeur Tableaux finis</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="largeur_tableau_tunnelle" 
+                                                           name="largeur_tableau_tunnelle" 
+                                                           step="1" 
+                                                           min="1"
+                                                           max="99999"
+                                                           placeholder="Ex: 1200">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez saisir une largeur valide.
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="hauteur_tableau_tunnelle" class="form-label">
+                                                    <strong>Hauteur Tableaux finis</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="hauteur_tableau_tunnelle" 
+                                                           name="hauteur_tableau_tunnelle" 
+                                                           step="1" 
+                                                           min="1"
+                                                           max="99999"
+                                                           placeholder="Ex: 1500">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez saisir une hauteur valide.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Largeur Fabrication calculée automatiquement -->
+                                        <div class="mt-3" id="largeur_fabrication_tunnelle_display" style="display: none;">
+                                            <label class="form-label">
+                                                <strong>Largeur Fabrication calculée automatiquement</strong>
+                                                <span class="text-muted">(Largeur Tableaux - 10mm)</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control bg-light" 
+                                                       id="largeur_fabrication_tunnelle_show" 
+                                                       readonly 
+                                                       placeholder="--">
+                                                <span class="input-group-text">mm</span>
+                                            </div>
+                                            <input type="hidden" id="largeur_fabrication_tunnelle" name="largeur_fabrication_tunnelle" value="">
+                                        </div>
+                                        
+                                        <!-- Hauteur Fabrication calculée automatiquement -->
+                                        <div class="mt-3" id="hauteur_fabrication_tunnelle_display" style="display: none;">
+                                            <label class="form-label">
+                                                <strong>Hauteur Fabrication calculée automatiquement</strong>
+                                                <span class="text-muted">(Hauteur Tableaux - 10mm)</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control bg-light" 
+                                                       id="hauteur_fabrication_tunnelle_show" 
+                                                       readonly 
+                                                       placeholder="--">
+                                                <span class="input-group-text">mm</span>
+                                            </div>
+                                            <input type="hidden" id="hauteur_fabrication_tunnelle" name="hauteur_fabrication_tunnelle" value="">
+                                        </div>
+                                        
+                                        <div class="form-text mt-2">
+                                            Ces dimensions correspondent aux tableaux finis pour la pose tunnelle.
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Champs spécifiques pour "Pose applique avec tapées isolation" -->
+                                    <div id="pose_applique_tapees_fields" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="largeur_tableau_tapees" class="form-label">
+                                                    <strong>Largeur Tableaux finis</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="largeur_tableau_tapees" 
+                                                           name="largeur_tableau_tapees" 
+                                                           step="1" 
+                                                           min="1"
+                                                           max="99999"
+                                                           placeholder="Ex: 1200">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez saisir une largeur valide.
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="hauteur_tableau_tapees" class="form-label">
+                                                    <strong>Hauteur Tableaux finis</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="hauteur_tableau_tapees" 
+                                                           name="hauteur_tableau_tapees" 
+                                                           step="1" 
+                                                           min="1"
+                                                           max="99999"
+                                                           placeholder="Ex: 1400">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez saisir une hauteur valide.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mt-3">
+                                            <div class="col-md-6">
+                                                <label for="doublage_largeur" class="form-label">
+                                                    <strong>Doublage Largeur</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <select class="form-select" 
+                                                            id="doublage_largeur" 
+                                                            name="doublage_largeur" 
+                                                            required>
+                                                        <option value="">Sélectionner...</option>
+                                                        <option value="100">100 mm</option>
+                                                        <option value="120">120 mm</option>
+                                                        <option value="140">140 mm</option>
+                                                        <option value="160">160 mm</option>
+                                                    </select>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez sélectionner une valeur de doublage largeur.
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="doublage_hauteur" class="form-label">
+                                                    <strong>Doublage Hauteur</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <select class="form-select" 
+                                                            id="doublage_hauteur" 
+                                                            name="doublage_hauteur" 
+                                                            required>
+                                                        <option value="">Sélectionner...</option>
+                                                        <option value="100">100 mm</option>
+                                                        <option value="120">120 mm</option>
+                                                        <option value="140">140 mm</option>
+                                                        <option value="160">160 mm</option>
+                                                    </select>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez sélectionner une valeur de doublage hauteur.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Largeur Fabrication calculée automatiquement -->
+                                        <div class="mt-3" id="largeur_fabrication_tapees_display" style="display: none;">
+                                            <label class="form-label">
+                                                <strong>Largeur Fabrication calculée automatiquement</strong>
+                                                <span class="text-muted">(Largeur Tableaux + 58mm)</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control bg-light" 
+                                                       id="largeur_fabrication_tapees_show" 
+                                                       readonly 
+                                                       placeholder="--">
+                                                <span class="input-group-text">mm</span>
+                                            </div>
+                                            <input type="hidden" id="largeur_fabrication_tapees" name="largeur_fabrication_tapees" value="">
+                                        </div>
+                                        
+                                        <!-- Hauteur Fabrication calculée automatiquement -->
+                                        <div class="mt-3" id="hauteur_fabrication_tapees_display" style="display: none;">
+                                            <label class="form-label">
+                                                <strong>Hauteur Fabrication calculée automatiquement</strong>
+                                                <span class="text-muted">(Hauteur Tableaux + 29mm)</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control bg-light" 
+                                                       id="hauteur_fabrication_tapees_show" 
+                                                       readonly 
+                                                       placeholder="--">
+                                                <span class="input-group-text">mm</span>
+                                            </div>
+                                            <input type="hidden" id="hauteur_fabrication_tapees" name="hauteur_fabrication_tapees" value="">
+                                        </div>
+                                        
+                                        <div class="form-text mt-2">
+                                            Ces dimensions correspondent aux tableaux finis et aux doublages (largeur et hauteur) pour la pose applique avec tapées isolation.
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Champs spécifiques pour "Pose en rénovation" -->
+                                    <div id="pose_renovation_fields" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="largeur_dormant_bois" class="form-label">
+                                                    <strong>Largeur entre dormant bois</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="largeur_dormant_bois" 
+                                                           name="largeur_dormant_bois" 
+                                                           step="1" 
+                                                           min="1"
+                                                           max="99999"
+                                                           placeholder="Ex: 1200">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez saisir une largeur valide.
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="hauteur_dormant_bois" class="form-label">
+                                                    <strong>Hauteur dormant bois</strong>
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="hauteur_dormant_bois" 
+                                                           name="hauteur_dormant_bois" 
+                                                           step="1" 
+                                                           min="1"
+                                                           max="99999"
+                                                           placeholder="Ex: 1400">
+                                                    <span class="input-group-text">mm</span>
+                                                </div>
+                                                <div class="invalid-feedback">
+                                                    Veuillez saisir une hauteur valide.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mt-3">
+                                            <div class="col-md-12">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" 
+                                                           type="checkbox" 
+                                                           id="particularite_compensateur" 
+                                                           name="particularite_compensateur"
+                                                           value="1">
+                                                    <label class="form-check-label" for="particularite_compensateur">
+                                                        Particularité compensateur 10mm
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Largeur Fabrication calculée automatiquement -->
+                                        <div class="mt-3" id="largeur_fabrication_renovation_display" style="display: none;">
+                                            <label class="form-label">
+                                                <strong>Largeur Fabrication calculée automatiquement</strong>
+                                                <span class="text-muted">(Largeur dormant bois - 10mm)</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control bg-light" 
+                                                       id="largeur_fabrication_renovation_show" 
+                                                       readonly 
+                                                       placeholder="--">
+                                                <span class="input-group-text">mm</span>
+                                            </div>
+                                            <input type="hidden" id="largeur_fabrication_renovation" name="largeur_fabrication_renovation" value="">
+                                        </div>
+                                        
+                                        <!-- Hauteur Fabrication calculée automatiquement -->
+                                        <div class="mt-3" id="hauteur_fabrication_renovation_display" style="display: none;">
+                                            <label class="form-label">
+                                                <strong>Hauteur Fabrication calculée automatiquement</strong>
+                                                <span class="text-muted">(Hauteur dormant bois - 10mm)</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control bg-light" 
+                                                       id="hauteur_fabrication_renovation_show" 
+                                                       readonly 
+                                                       placeholder="--">
+                                                <span class="input-group-text">mm</span>
+                                            </div>
+                                            <input type="hidden" id="hauteur_fabrication_renovation" name="hauteur_fabrication_renovation" value="">
+                                        </div>
+                                        
+                                        <div class="form-text mt-2">
+                                            Ces dimensions correspondent aux mesures entre dormants bois pour la pose en rénovation.
                                         </div>
                                     </div>
                                     
@@ -288,6 +735,347 @@
                 var calculatedValueHidden = document.getElementById('calculated_value');
                 var coefficient = 1.5; // Coefficient de calcul
                 
+                // Éléments pour la gestion des champs conditionnels
+                var standardFields = document.getElementById('standard_fields');
+                var appliqueSansTapeesFields = document.getElementById('applique_sans_tapees_fields');
+                var poseTunnelleFields = document.getElementById('pose_tunnelle_fields');
+                var poseAppliqueTapeesFields = document.getElementById('pose_applique_tapees_fields');
+                var poseRenovationFields = document.getElementById('pose_renovation_fields');
+                var largeurTableau = document.getElementById('largeur_tableau');
+                var hauteurTableau = document.getElementById('hauteur_tableau');
+                var largeurTableauTunnelle = document.getElementById('largeur_tableau_tunnelle');
+                var hauteurTableauTunnelle = document.getElementById('hauteur_tableau_tunnelle');
+                var largeurTableauTapees = document.getElementById('largeur_tableau_tapees');
+                var hauteurTableauTapees = document.getElementById('hauteur_tableau_tapees');
+                var doublageLargeur = document.getElementById('doublage_largeur');
+                var doublageHauteur = document.getElementById('doublage_hauteur');
+                var largeurDormantBois = document.getElementById('largeur_dormant_bois');
+                var hauteurDormantBois = document.getElementById('hauteur_dormant_bois');
+                var particulariteCompensateur = document.getElementById('particularite_compensateur');
+                var schemaRadios = document.querySelectorAll('input[name="pdf_schema_id"]');
+                
+                // Éléments pour la largeur de fabrication (applique)
+                var largeurFabricationDisplay = document.getElementById('largeur_fabrication_display');
+                var largeurFabricationShow = document.getElementById('largeur_fabrication_show');
+                var largeurFabricationHidden = document.getElementById('largeur_fabrication');
+                
+                // Éléments pour la hauteur de fabrication (applique)
+                var hauteurFabricationDisplay = document.getElementById('hauteur_fabrication_display');
+                var hauteurFabricationShow = document.getElementById('hauteur_fabrication_show');
+                var hauteurFabricationHidden = document.getElementById('hauteur_fabrication');
+                
+                // Éléments pour la largeur de fabrication (tunnelle)
+                var largeurFabricationTunnelleDisplay = document.getElementById('largeur_fabrication_tunnelle_display');
+                var largeurFabricationTunnelleShow = document.getElementById('largeur_fabrication_tunnelle_show');
+                var largeurFabricationTunnelleHidden = document.getElementById('largeur_fabrication_tunnelle');
+                
+                // Éléments pour la largeur de fabrication (applique avec tapées)
+                var largeurFabricationTapeesDisplay = document.getElementById('largeur_fabrication_tapees_display');
+                var largeurFabricationTapeesShow = document.getElementById('largeur_fabrication_tapees_show');
+                var largeurFabricationTapeesHidden = document.getElementById('largeur_fabrication_tapees');
+                
+                // Éléments pour la hauteur de fabrication (applique avec tapées)
+                var hauteurFabricationTapeesDisplay = document.getElementById('hauteur_fabrication_tapees_display');
+                var hauteurFabricationTapeesShow = document.getElementById('hauteur_fabrication_tapees_show');
+                var hauteurFabricationTapeesHidden = document.getElementById('hauteur_fabrication_tapees');
+                
+                // Éléments pour la largeur de fabrication (rénovation)
+                var largeurFabricationRenovationDisplay = document.getElementById('largeur_fabrication_renovation_display');
+                var largeurFabricationRenovationShow = document.getElementById('largeur_fabrication_renovation_show');
+                var largeurFabricationRenovationHidden = document.getElementById('largeur_fabrication_renovation');
+                
+                // Éléments pour la hauteur de fabrication (rénovation)
+                var hauteurFabricationRenovationDisplay = document.getElementById('hauteur_fabrication_renovation_display');
+                var hauteurFabricationRenovationShow = document.getElementById('hauteur_fabrication_renovation_show');
+                var hauteurFabricationRenovationHidden = document.getElementById('hauteur_fabrication_renovation');
+                
+                // Éléments pour la hauteur de fabrication (tunnelle)
+                var hauteurFabricationTunnelleDisplay = document.getElementById('hauteur_fabrication_tunnelle_display');
+                var hauteurFabricationTunnelleShow = document.getElementById('hauteur_fabrication_tunnelle_show');
+                var hauteurFabricationTunnelleHidden = document.getElementById('hauteur_fabrication_tunnelle');
+                
+                // Fonction pour calculer la largeur de fabrication
+                function updateLargeurFabrication() {
+                    if (largeurTableau && largeurFabricationShow && largeurFabricationHidden) {
+                        var largeurValue = parseFloat(largeurTableau.value);
+                        if (largeurValue && largeurValue > 0) {
+                            var largeurFab = largeurValue + 60;
+                            largeurFabricationShow.value = largeurFab.toFixed(0);
+                            largeurFabricationHidden.value = largeurFab.toFixed(0);
+                            largeurFabricationDisplay.style.display = 'block';
+                        } else {
+                            largeurFabricationShow.value = '';
+                            largeurFabricationHidden.value = '';
+                            largeurFabricationDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour calculer la hauteur de fabrication
+                function updateHauteurFabrication() {
+                    if (hauteurTableau && hauteurFabricationShow && hauteurFabricationHidden) {
+                        var hauteurValue = parseFloat(hauteurTableau.value);
+                        if (hauteurValue && hauteurValue > 0) {
+                            var hauteurFab = hauteurValue + 30;
+                            hauteurFabricationShow.value = hauteurFab.toFixed(0);
+                            hauteurFabricationHidden.value = hauteurFab.toFixed(0);
+                            hauteurFabricationDisplay.style.display = 'block';
+                        } else {
+                            hauteurFabricationShow.value = '';
+                            hauteurFabricationHidden.value = '';
+                            hauteurFabricationDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour calculer la largeur de fabrication (tunnelle)
+                function updateLargeurFabricationTunnelle() {
+                    if (largeurTableauTunnelle && largeurFabricationTunnelleShow && largeurFabricationTunnelleHidden) {
+                        var largeurValue = parseFloat(largeurTableauTunnelle.value);
+                        if (largeurValue && largeurValue > 0) {
+                            var largeurFab = largeurValue - 10;
+                            largeurFabricationTunnelleShow.value = largeurFab.toFixed(0);
+                            largeurFabricationTunnelleHidden.value = largeurFab.toFixed(0);
+                            largeurFabricationTunnelleDisplay.style.display = 'block';
+                        } else {
+                            largeurFabricationTunnelleShow.value = '';
+                            largeurFabricationTunnelleHidden.value = '';
+                            largeurFabricationTunnelleDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour calculer la hauteur de fabrication (tunnelle)
+                function updateHauteurFabricationTunnelle() {
+                    if (hauteurTableauTunnelle && hauteurFabricationTunnelleShow && hauteurFabricationTunnelleHidden) {
+                        var hauteurValue = parseFloat(hauteurTableauTunnelle.value);
+                        if (hauteurValue && hauteurValue > 0) {
+                            var hauteurFab = hauteurValue - 10;
+                            hauteurFabricationTunnelleShow.value = hauteurFab.toFixed(0);
+                            hauteurFabricationTunnelleHidden.value = hauteurFab.toFixed(0);
+                            hauteurFabricationTunnelleDisplay.style.display = 'block';
+                        } else {
+                            hauteurFabricationTunnelleShow.value = '';
+                            hauteurFabricationTunnelleHidden.value = '';
+                            hauteurFabricationTunnelleDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour calculer la largeur de fabrication (applique avec tapées)
+                function updateLargeurFabricationTapees() {
+                    if (largeurTableauTapees && largeurFabricationTapeesShow && largeurFabricationTapeesHidden) {
+                        var largeurValue = parseFloat(largeurTableauTapees.value);
+                        if (largeurValue && largeurValue > 0) {
+                            var largeurFab = largeurValue + 58;
+                            largeurFabricationTapeesShow.value = largeurFab.toFixed(0);
+                            largeurFabricationTapeesHidden.value = largeurFab.toFixed(0);
+                            largeurFabricationTapeesDisplay.style.display = 'block';
+                        } else {
+                            largeurFabricationTapeesShow.value = '';
+                            largeurFabricationTapeesHidden.value = '';
+                            largeurFabricationTapeesDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour calculer la hauteur de fabrication (applique avec tapées)
+                function updateHauteurFabricationTapees() {
+                    if (hauteurTableauTapees && hauteurFabricationTapeesShow && hauteurFabricationTapeesHidden) {
+                        var hauteurValue = parseFloat(hauteurTableauTapees.value);
+                        if (hauteurValue && hauteurValue > 0) {
+                            var hauteurFab = hauteurValue + 29;
+                            hauteurFabricationTapeesShow.value = hauteurFab.toFixed(0);
+                            hauteurFabricationTapeesHidden.value = hauteurFab.toFixed(0);
+                            hauteurFabricationTapeesDisplay.style.display = 'block';
+                        } else {
+                            hauteurFabricationTapeesShow.value = '';
+                            hauteurFabricationTapeesHidden.value = '';
+                            hauteurFabricationTapeesDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour calculer la largeur de fabrication (rénovation)
+                function updateLargeurFabricationRenovation() {
+                    if (largeurDormantBois && largeurFabricationRenovationShow && largeurFabricationRenovationHidden) {
+                        var largeurValue = parseFloat(largeurDormantBois.value);
+                        if (largeurValue && largeurValue > 0) {
+                            var largeurFab = largeurValue - 10;
+                            largeurFabricationRenovationShow.value = largeurFab.toFixed(0);
+                            largeurFabricationRenovationHidden.value = largeurFab.toFixed(0);
+                            largeurFabricationRenovationDisplay.style.display = 'block';
+                        } else {
+                            largeurFabricationRenovationShow.value = '';
+                            largeurFabricationRenovationHidden.value = '';
+                            largeurFabricationRenovationDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour calculer la hauteur de fabrication (rénovation)
+                function updateHauteurFabricationRenovation() {
+                    if (hauteurDormantBois && hauteurFabricationRenovationShow && hauteurFabricationRenovationHidden) {
+                        var hauteurValue = parseFloat(hauteurDormantBois.value);
+                        if (hauteurValue && hauteurValue > 0) {
+                            var hauteurFab = hauteurValue - 10;
+                            hauteurFabricationRenovationShow.value = hauteurFab.toFixed(0);
+                            hauteurFabricationRenovationHidden.value = hauteurFab.toFixed(0);
+                            hauteurFabricationRenovationDisplay.style.display = 'block';
+                        } else {
+                            hauteurFabricationRenovationShow.value = '';
+                            hauteurFabricationRenovationHidden.value = '';
+                            hauteurFabricationRenovationDisplay.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Fonction pour basculer entre les types de champs selon le schéma sélectionné
+                function toggleFieldsBasedOnSchema() {
+                    var selectedSchemaLabel = document.querySelector('input[name="pdf_schema_id"]:checked');
+                    if (selectedSchemaLabel) {
+                        var schemaLabel = document.querySelector('label[for="' + selectedSchemaLabel.id + '"]');
+                        var schemaName = schemaLabel ? schemaLabel.textContent.trim() : '';
+                        
+                        if (schemaName.includes('Pose en applique sans tapées')) {
+                            // Afficher les champs spécifiques pour pose en applique sans tapées
+                            standardFields.style.display = 'none';
+                            appliqueSansTapeesFields.style.display = 'block';
+                            poseTunnelleFields.style.display = 'none';
+                            poseAppliqueTapeesFields.style.display = 'none';
+                            poseRenovationFields.style.display = 'none';
+                            calculatedValueDisplay.style.display = 'none';
+                            
+                            // Rendre les champs obligatoires
+                            largeurTableau.required = true;
+                            hauteurTableau.required = true;
+                            largeurTableauTunnelle.required = false;
+                            hauteurTableauTunnelle.required = false;
+                            largeurTableauTapees.required = false;
+                            hauteurTableauTapees.required = false;
+                            doublageLargeur.required = false;
+                            doublageHauteur.required = false;
+                            largeurDormantBois.required = false;
+                            hauteurDormantBois.required = false;
+                            customValueInput.required = false;
+                            
+                            // Calculer la largeur et hauteur de fabrication si des valeurs existent déjà
+                            updateLargeurFabrication();
+                            updateHauteurFabrication();
+                        } else if (schemaName.includes('Pose tunnelle')) {
+                            // Afficher les champs spécifiques pour pose tunnelle
+                            standardFields.style.display = 'none';
+                            appliqueSansTapeesFields.style.display = 'none';
+                            poseTunnelleFields.style.display = 'block';
+                            poseAppliqueTapeesFields.style.display = 'none';
+                            poseRenovationFields.style.display = 'none';
+                            calculatedValueDisplay.style.display = 'none';
+                            
+                            // Rendre les champs obligatoires
+                            largeurTableau.required = false;
+                            hauteurTableau.required = false;
+                            largeurTableauTunnelle.required = true;
+                            hauteurTableauTunnelle.required = true;
+                            largeurTableauTapees.required = false;
+                            hauteurTableauTapees.required = false;
+                            doublageLargeur.required = false;
+                            doublageHauteur.required = false;
+                            largeurDormantBois.required = false;
+                            hauteurDormantBois.required = false;
+                            customValueInput.required = false;
+                            
+                            // Calculer la largeur et hauteur de fabrication si des valeurs existent déjà
+                            updateLargeurFabricationTunnelle();
+                            updateHauteurFabricationTunnelle();
+                        } else if (schemaName.includes('Pose applique avec tapées isolation')) {
+                            // Afficher les champs spécifiques pour pose applique avec tapées isolation
+                            standardFields.style.display = 'none';
+                            appliqueSansTapeesFields.style.display = 'none';
+                            poseTunnelleFields.style.display = 'none';
+                            poseAppliqueTapeesFields.style.display = 'block';
+                            calculatedValueDisplay.style.display = 'none';
+                            
+                            // Rendre les champs obligatoires
+                            largeurTableau.required = false;
+                            hauteurTableau.required = false;
+                            largeurTableauTunnelle.required = false;
+                            hauteurTableauTunnelle.required = false;
+                            largeurTableauTapees.required = true;
+                            hauteurTableauTapees.required = true;
+                            doublageLargeur.required = true;
+                            doublageHauteur.required = true;
+                            largeurDormantBois.required = false;
+                            hauteurDormantBois.required = false;
+                            customValueInput.required = false;
+                            
+                            // Calculer la largeur et hauteur de fabrication si des valeurs existent déjà
+                            updateLargeurFabricationTapees();
+                            updateHauteurFabricationTapees();
+                        } else if (schemaName.includes('Pose en rénovation')) {
+                            // Afficher les champs spécifiques pour pose en rénovation
+                            standardFields.style.display = 'none';
+                            appliqueSansTapeesFields.style.display = 'none';
+                            poseTunnelleFields.style.display = 'none';
+                            poseAppliqueTapeesFields.style.display = 'none';
+                            poseRenovationFields.style.display = 'block';
+                            calculatedValueDisplay.style.display = 'none';
+                            
+                            // Rendre les champs obligatoires
+                            largeurTableau.required = false;
+                            hauteurTableau.required = false;
+                            largeurTableauTunnelle.required = false;
+                            hauteurTableauTunnelle.required = false;
+                            largeurTableauTapees.required = false;
+                            hauteurTableauTapees.required = false;
+                            doublageLargeur.required = false;
+                            doublageHauteur.required = false;
+                            largeurDormantBois.required = true;
+                            hauteurDormantBois.required = true;
+                            customValueInput.required = false;
+                            
+                            // Calculer la largeur et hauteur de fabrication si des valeurs existent déjà
+                            updateLargeurFabricationRenovation();
+                            updateHauteurFabricationRenovation();
+                        } else {
+                            // Afficher les champs standards
+                            standardFields.style.display = 'block';
+                            appliqueSansTapeesFields.style.display = 'none';
+                            poseTunnelleFields.style.display = 'none';
+                            poseAppliqueTapeesFields.style.display = 'none';
+                            poseRenovationFields.style.display = 'none';
+                            poseTunnelleFields.style.display = 'none';
+                            largeurFabricationDisplay.style.display = 'none';
+                            hauteurFabricationDisplay.style.display = 'none';
+                            largeurFabricationTunnelleDisplay.style.display = 'none';
+                            hauteurFabricationTunnelleDisplay.style.display = 'none';
+                            
+                            // Rendre les champs obligatoires
+                            largeurTableau.required = false;
+                            hauteurTableau.required = false;
+                            largeurTableauTunnelle.required = false;
+                            hauteurTableauTunnelle.required = false;
+                            largeurTableauTapees.required = false;
+                            hauteurTableauTapees.required = false;
+                            doublageLargeur.required = false;
+                            doublageHauteur.required = false;
+                            largeurDormantBois.required = false;
+                            hauteurDormantBois.required = false;
+                            customValueInput.required = true;
+                            
+                            // Recalculer la valeur si applicable
+                            updateCalculatedValue();
+                        }
+                    }
+                }
+                
+                // Écouter les changements de sélection de schéma
+                schemaRadios.forEach(function(radio) {
+                    radio.addEventListener('change', toggleFieldsBasedOnSchema);
+                });
+                
+                // Initialiser l'affichage au chargement de la page
+                toggleFieldsBasedOnSchema();
+                
                 // Fonction pour calculer et afficher la côte extérieur automatique
                 function updateCalculatedValue() {
                     var value = parseFloat(customValueInput.value);
@@ -306,14 +1094,134 @@
                 // Validation pour le bouton PDF
                 if (generatePdfBtn && customValueInput) {
                     generatePdfBtn.addEventListener('click', function(event) {
-                        var value = customValueInput.value;
-                        if (!value || parseFloat(value) <= 0) {
+                        // Vérifier la sélection du schéma
+                        var schemaSelected = document.querySelector('input[name="pdf_schema_id"]:checked');
+                        if (!schemaSelected) {
                             event.preventDefault();
-                            customValueInput.setCustomValidity('Une côte interne est requise pour générer un PDF');
-                            customValueInput.reportValidity();
+                            alert('Veuillez sélectionner un schéma de plan avant de générer le PDF.');
                             return false;
+                        }
+                        
+                        var schemaLabel = document.querySelector('label[for="' + schemaSelected.id + '"]');
+                        var schemaName = schemaLabel ? schemaLabel.textContent.trim() : '';
+                        
+                        if (schemaName.includes('Pose en applique sans tapées')) {
+                            // Validation pour pose en applique sans tapées
+                            var largeurValue = largeurTableau.value;
+                            var hauteurValue = hauteurTableau.value;
+                            
+                            if (!largeurValue || parseFloat(largeurValue) <= 0) {
+                                event.preventDefault();
+                                largeurTableau.setCustomValidity('La largeur des tableaux finis est requise');
+                                largeurTableau.reportValidity();
+                                return false;
+                            }
+                            
+                            if (!hauteurValue || parseFloat(hauteurValue) <= 0) {
+                                event.preventDefault();
+                                hauteurTableau.setCustomValidity('La hauteur des tableaux finis est requise');
+                                hauteurTableau.reportValidity();
+                                return false;
+                            }
+                            
+                            // Réinitialiser la validité si tout est correct
+                            largeurTableau.setCustomValidity('');
+                            hauteurTableau.setCustomValidity('');
+                        } else if (schemaName.includes('Pose tunnelle')) {
+                            // Validation pour pose tunnelle
+                            var largeurValue = largeurTableauTunnelle.value;
+                            var hauteurValue = hauteurTableauTunnelle.value;
+                            
+                            if (!largeurValue || parseFloat(largeurValue) <= 0) {
+                                event.preventDefault();
+                                largeurTableauTunnelle.setCustomValidity('La largeur des tableaux finis est requise');
+                                largeurTableauTunnelle.reportValidity();
+                                return false;
+                            }
+                            
+                            if (!hauteurValue || parseFloat(hauteurValue) <= 0) {
+                                event.preventDefault();
+                                hauteurTableauTunnelle.setCustomValidity('La hauteur des tableaux finis est requise');
+                                hauteurTableauTunnelle.reportValidity();
+                                return false;
+                            }
+                            
+                            // Réinitialiser la validité si tout est correct
+                            largeurTableauTunnelle.setCustomValidity('');
+                            hauteurTableauTunnelle.setCustomValidity('');
+                        } else if (schemaName.includes('Pose applique avec tapées isolation')) {
+                            // Validation pour pose applique avec tapées isolation
+                            var largeurValue = largeurTableauTapees.value;
+                            var hauteurValue = hauteurTableauTapees.value;
+                            var doublageLargeurValue = doublageLargeur.value;
+                            var doublageHauteurValue = doublageHauteur.value;
+                            
+                            if (!largeurValue || parseFloat(largeurValue) <= 0) {
+                                event.preventDefault();
+                                largeurTableauTapees.setCustomValidity('La largeur des tableaux finis est requise');
+                                largeurTableauTapees.reportValidity();
+                                return false;
+                            }
+                            
+                            if (!hauteurValue || parseFloat(hauteurValue) <= 0) {
+                                event.preventDefault();
+                                hauteurTableauTapees.setCustomValidity('La hauteur des tableaux finis est requise');
+                                hauteurTableauTapees.reportValidity();
+                                return false;
+                            }
+                            
+                            if (!doublageLargeurValue) {
+                                event.preventDefault();
+                                doublageLargeur.setCustomValidity('La valeur de doublage largeur est requise');
+                                doublageLargeur.reportValidity();
+                                return false;
+                            }
+                            
+                            if (!doublageHauteurValue) {
+                                event.preventDefault();
+                                doublageHauteur.setCustomValidity('La valeur de doublage hauteur est requise');
+                                doublageHauteur.reportValidity();
+                                return false;
+                            }
+                            
+                            // Réinitialiser la validité si tout est correct
+                            largeurTableauTapees.setCustomValidity('');
+                            hauteurTableauTapees.setCustomValidity('');
+                            doublageLargeur.setCustomValidity('');
+                            doublageHauteur.setCustomValidity('');
+                        } else if (schemaName.includes('Pose en rénovation')) {
+                            // Validation pour pose en rénovation
+                            var largeurDormantValue = largeurDormantBois.value;
+                            var hauteurDormantValue = hauteurDormantBois.value;
+                            
+                            if (!largeurDormantValue || parseFloat(largeurDormantValue) <= 0) {
+                                event.preventDefault();
+                                largeurDormantBois.setCustomValidity('La largeur entre dormant bois est requise');
+                                largeurDormantBois.reportValidity();
+                                return false;
+                            }
+                            
+                            if (!hauteurDormantValue || parseFloat(hauteurDormantValue) <= 0) {
+                                event.preventDefault();
+                                hauteurDormantBois.setCustomValidity('La hauteur dormant bois est requise');
+                                hauteurDormantBois.reportValidity();
+                                return false;
+                            }
+                            
+                            // Réinitialiser la validité si tout est correct
+                            largeurDormantBois.setCustomValidity('');
+                            hauteurDormantBois.setCustomValidity('');
                         } else {
-                            customValueInput.setCustomValidity('');
+                            // Validation standard pour les autres schémas
+                            var value = customValueInput.value;
+                            if (!value || parseFloat(value) <= 0) {
+                                event.preventDefault();
+                                customValueInput.setCustomValidity('Une côte interne est requise pour générer un PDF');
+                                customValueInput.reportValidity();
+                                return false;
+                            } else {
+                                customValueInput.setCustomValidity('');
+                            }
                         }
                     });
                     
@@ -321,6 +1229,51 @@
                     customValueInput.addEventListener('input', function() {
                         customValueInput.setCustomValidity('');
                         updateCalculatedValue();
+                    });
+                    
+                    // Gestionnaires pour les champs largeur et hauteur tableaux
+                    largeurTableau.addEventListener('input', function() {
+                        largeurTableau.setCustomValidity('');
+                        updateLargeurFabrication(); // Calculer automatiquement la largeur de fabrication
+                    });
+                    
+                    hauteurTableau.addEventListener('input', function() {
+                        hauteurTableau.setCustomValidity('');
+                        updateHauteurFabrication(); // Calculer automatiquement la hauteur de fabrication
+                    });
+                    
+                    // Gestionnaires pour les champs largeur et hauteur tableaux tunnelle
+                    largeurTableauTunnelle.addEventListener('input', function() {
+                        largeurTableauTunnelle.setCustomValidity('');
+                        updateLargeurFabricationTunnelle(); // Calculer automatiquement la largeur de fabrication
+                    });
+                    
+                    hauteurTableauTunnelle.addEventListener('input', function() {
+                        hauteurTableauTunnelle.setCustomValidity('');
+                        updateHauteurFabricationTunnelle(); // Calculer automatiquement la hauteur de fabrication
+                    });
+                    
+                    // Gestionnaire pour le champ largeur tableau applique avec tapées
+                    largeurTableauTapees.addEventListener('input', function() {
+                        largeurTableauTapees.setCustomValidity('');
+                        updateLargeurFabricationTapees(); // Calculer automatiquement la largeur de fabrication
+                    });
+                    
+                    // Gestionnaire pour le champ hauteur tableau applique avec tapées
+                    hauteurTableauTapees.addEventListener('input', function() {
+                        hauteurTableauTapees.setCustomValidity('');
+                        updateHauteurFabricationTapees(); // Calculer automatiquement la hauteur de fabrication
+                    });
+                    
+                    // Gestionnaires pour les champs dormant bois (rénovation)
+                    largeurDormantBois.addEventListener('input', function() {
+                        largeurDormantBois.setCustomValidity('');
+                        updateLargeurFabricationRenovation(); // Calculer automatiquement la largeur de fabrication
+                    });
+                    
+                    hauteurDormantBois.addEventListener('input', function() {
+                        hauteurDormantBois.setCustomValidity('');
+                        updateHauteurFabricationRenovation(); // Calculer automatiquement la hauteur de fabrication
                     });
                     
                     // Calculer au chargement si une valeur existe
@@ -397,6 +1350,46 @@
         .pdf-mini-preview iframe {
             display: block;
             margin: 0 auto;
+        }
+        
+        /* Styles pour la sélection de schémas */
+        .schema-option {
+            transition: transform 0.2s ease;
+        }
+        
+        .schema-option:hover {
+            transform: translateY(-2px);
+        }
+        
+        .schema-option .btn-check:checked + .btn {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: white;
+        }
+        
+        .schema-option .btn-check:checked + .btn .text-muted {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        .schema-preview-img {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .btn-check:checked + .btn .schema-preview-img {
+            border-color: white;
+        }
+        
+        .schema-option .btn {
+            min-height: 140px;
+            border: 2px solid #dee2e6;
+            transition: all 0.2s ease;
+        }
+        
+        .schema-option .btn:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.15);
         }
         
         @media (max-width: 768px) {

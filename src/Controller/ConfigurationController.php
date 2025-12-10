@@ -869,6 +869,14 @@ class ConfigurationController extends AbstractController
         $pdfPath = null;
         $encodedPdfPath = null;
         
+        // Récupérer les schémas PDF disponibles
+        $availableSchemas = $this->entityManager->getRepository(\App\Entity\PdfSchema::class)
+            ->findActiveOrderedByOrdre();
+            
+        if (empty($availableSchemas)) {
+            $this->addFlash('error', 'Aucun schéma PDF disponible. Contactez l\'administrateur.');
+        }
+        
         // Récupérer les PDFs existants pour ce projet
         $existingPdfs = [];
         $projetPdfs = $this->entityManager->getRepository(\App\Entity\ProjetPdf::class)
@@ -900,21 +908,205 @@ class ConfigurationController extends AbstractController
             }
             
             if ($action === 'generate_pdf') {
-                // Action : générer le PDF
-                $customValue = (float) $request->request->get('custom_value');
-                $calculatedValue = (float) $request->request->get('calculated_value');
+                // Récupérer le schéma sélectionné
+                $schemaId = (int) $request->request->get('pdf_schema_id');
                 
-                if ($customValue <= 0) {
-                    $this->addFlash('error', 'Veuillez saisir une valeur valide.');
+                if (!$schemaId) {
+                    $this->addFlash('error', 'Veuillez sélectionner un schéma avant de générer le PDF.');
                 } else {
-                    try {
-                        // Générer le PDF avec les deux valeurs
-                        $pdfPath = $pdfGenerator->generatePlanPdf($confPf, $customValue, $calculatedValue);
-                        $encodedPdfPath = base64_encode($pdfPath);
+                    // Vérifier que le schéma existe et est actif
+                    $pdfSchema = $this->entityManager->getRepository(\App\Entity\PdfSchema::class)
+                        ->findActiveById($schemaId);
                         
-                        $this->addFlash('success', 'PDF généré avec succès avec la côte interne ' . number_format($customValue, 0) . ' mm et la côte extérieur ' . number_format($calculatedValue, 0) . ' mm !');
-                    } catch (\Exception $e) {
-                        $this->addFlash('error', 'Erreur lors de la génération du PDF : ' . $e->getMessage());
+                    if (!$pdfSchema) {
+                        $this->addFlash('error', 'Schéma PDF invalide ou inactif.');
+                    } else {
+                        try {
+                            $customValue = 0;
+                            $calculatedValue = 0;
+                            $successMessage = '';
+                            
+                            // Gérer différemment selon le type de schéma
+                            if ($pdfSchema->getNom() === 'Pose en applique sans tapées') {
+                                // Pour pose en applique sans tapées : récupérer largeur et hauteur
+                                $largeurTableau = (float) $request->request->get('largeur_tableau');
+                                $hauteurTableau = (float) $request->request->get('hauteur_tableau');
+                                $largeurFabrication = (float) $request->request->get('largeur_fabrication');
+                                $hauteurFabrication = (float) $request->request->get('hauteur_fabrication');
+                                
+                                if ($largeurTableau <= 0 || $hauteurTableau <= 0) {
+                                    $this->addFlash('error', 'Veuillez saisir des dimensions valides pour les tableaux finis.');
+                                    return $this->redirectToRoute('app_configuration_pf_pdf', [
+                                        'projet' => $projet->getId(),
+                                        'confpf' => $confPf->getId()
+                                    ]);
+                                }
+                                
+                                // Vérifier que les dimensions de fabrication sont correctement calculées
+                                $expectedLargeurFab = $largeurTableau - 10;
+                                $expectedHauteurFab = $hauteurTableau - 10;
+                                if (abs($largeurFabrication - $expectedLargeurFab) > 0.1) {
+                                    $largeurFabrication = $expectedLargeurFab; // Recalculer pour sécurité
+                                }
+                                if (abs($hauteurFabrication - $expectedHauteurFab) > 0.1) {
+                                    $hauteurFabrication = $expectedHauteurFab; // Recalculer pour sécurité
+                                }
+                                
+                                // Utiliser la largeur comme valeur principale pour la compatibilité
+                                $customValue = $largeurTableau;
+                                $calculatedValue = $hauteurTableau; // Stocker la hauteur dans calculatedValue
+                                
+                                $successMessage = 'PDF généré avec succès - Largeur Tableaux: ' . number_format($largeurTableau, 0) . ' mm, Hauteur: ' . number_format($hauteurTableau, 0) . ' mm, Largeur Fabrication: ' . number_format($largeurFabrication, 0) . ' mm, Hauteur Fabrication: ' . number_format($hauteurFabrication, 0) . ' mm';
+                            } elseif ($pdfSchema->getNom() === 'Pose tunnelle') {
+                                // Pour pose tunnelle : récupérer largeur et hauteur
+                                $largeurTableau = (float) $request->request->get('largeur_tableau_tunnelle');
+                                $hauteurTableau = (float) $request->request->get('hauteur_tableau_tunnelle');
+                                $largeurFabrication = (float) $request->request->get('largeur_fabrication_tunnelle');
+                                $hauteurFabrication = (float) $request->request->get('hauteur_fabrication_tunnelle');
+                                
+                                if ($largeurTableau <= 0 || $hauteurTableau <= 0) {
+                                    $this->addFlash('error', 'Veuillez saisir des dimensions valides pour les tableaux finis.');
+                                    return $this->redirectToRoute('app_configuration_pf_pdf', [
+                                        'projet' => $projet->getId(),
+                                        'confpf' => $confPf->getId()
+                                    ]);
+                                }
+                                
+                                // Vérifier que les dimensions de fabrication sont correctement calculées
+                                $expectedLargeurFab = $largeurTableau + 60;
+                                $expectedHauteurFab = $hauteurTableau + 30;
+                                if (abs($largeurFabrication - $expectedLargeurFab) > 0.1) {
+                                    $largeurFabrication = $expectedLargeurFab; // Recalculer pour sécurité
+                                }
+                                if (abs($hauteurFabrication - $expectedHauteurFab) > 0.1) {
+                                    $hauteurFabrication = $expectedHauteurFab; // Recalculer pour sécurité
+                                }
+                                
+                                // Utiliser la largeur comme valeur principale pour la compatibilité
+                                $customValue = $largeurTableau;
+                                $calculatedValue = $hauteurTableau; // Stocker la hauteur dans calculatedValue
+                                
+                                $successMessage = 'PDF généré avec succès - Largeur Tableaux: ' . number_format($largeurTableau, 0) . ' mm, Hauteur: ' . number_format($hauteurTableau, 0) . ' mm, Largeur Fabrication: ' . number_format($largeurFabrication, 0) . ' mm, Hauteur Fabrication: ' . number_format($hauteurFabrication, 0) . ' mm';
+                            } elseif ($pdfSchema->getNom() === 'Pose applique avec tapées isolation') {
+                                // Pour pose applique avec tapées isolation : récupérer largeur, hauteur et les deux doublages
+                                $largeurTableau = (float) $request->request->get('largeur_tableau_tapees');
+                                $hauteurTableau = (float) $request->request->get('hauteur_tableau_tapees');
+                                $doublageLargeur = (float) $request->request->get('doublage_largeur');
+                                $doublageHauteur = (float) $request->request->get('doublage_hauteur');
+                                
+                                if ($largeurTableau <= 0 || $hauteurTableau <= 0 || $doublageLargeur <= 0 || $doublageHauteur <= 0) {
+                                    $this->addFlash('error', 'Veuillez saisir des valeurs valides pour les tableaux finis (largeur et hauteur) et les doublages (largeur et hauteur).');
+                                    return $this->redirectToRoute('app_configuration_pf_pdf', [
+                                        'projet' => $projet->getId(),
+                                        'confpf' => $confPf->getId()
+                                    ]);
+                                }
+                                
+                                // Calculer la largeur de fabrication (largeur tableaux + 58)
+                                $largeurFabrication = $largeurTableau + 58;
+                                
+                                // Calculer la hauteur de fabrication (hauteur tableaux + 29)
+                                $hauteurFabrication = $hauteurTableau + 29;
+                                
+                                // Stocker les valeurs dans additionalValues
+                                $additionalValues = [
+                                    'largeur_tableau' => $largeurTableau,
+                                    'hauteur_tableau' => $hauteurTableau,
+                                    'doublage_largeur' => $doublageLargeur,
+                                    'doublage_hauteur' => $doublageHauteur,
+                                    'largeur_fabrication' => $largeurFabrication,
+                                    'hauteur_fabrication' => $hauteurFabrication,
+                                ];
+                                
+                                // Utiliser la largeur comme valeur principale pour la compatibilité
+                                $customValue = $largeurTableau;
+                                $calculatedValue = $hauteurTableau; // Stocker la hauteur dans calculatedValue
+                                
+                                $successMessage = 'PDF généré avec succès - Largeur Tableaux: ' . number_format($largeurTableau, 0) . ' mm, Hauteur: ' . number_format($hauteurTableau, 0) . ' mm, Doublage Largeur: ' . number_format($doublageLargeur, 0) . ' mm, Doublage Hauteur: ' . number_format($doublageHauteur, 0) . ' mm, Largeur Fabrication: ' . number_format($largeurFabrication, 0) . ' mm, Hauteur Fabrication: ' . number_format($hauteurFabrication, 0) . ' mm';
+                            } elseif ($pdfSchema->getNom() === 'Pose en rénovation') {
+                                // Pour pose en rénovation : récupérer largeur et hauteur dormant bois + particularité
+                                $largeurDormantBois = (float) $request->request->get('largeur_dormant_bois');
+                                $hauteurDormantBois = (float) $request->request->get('hauteur_dormant_bois');
+                                $particulariteCompensateur = $request->request->get('particularite_compensateur') ? true : false;
+                                
+                                if ($largeurDormantBois <= 0 || $hauteurDormantBois <= 0) {
+                                    $this->addFlash('error', 'Veuillez saisir des valeurs valides pour les dimensions entre dormants bois.');
+                                    return $this->redirectToRoute('app_configuration_pf_pdf', [
+                                        'projet' => $projet->getId(),
+                                        'confpf' => $confPf->getId()
+                                    ]);
+                                }
+                                
+                                // Calculer la largeur et hauteur de fabrication (dormant bois - 10)
+                                $largeurFabrication = $largeurDormantBois - 10;
+                                $hauteurFabrication = $hauteurDormantBois - 10;
+                                
+                                // Stocker les valeurs dans additionalValues
+                                $additionalValues = [
+                                    'largeur_dormant_bois' => $largeurDormantBois,
+                                    'hauteur_dormant_bois' => $hauteurDormantBois,
+                                    'particularite_compensateur' => $particulariteCompensateur,
+                                    'largeur_fabrication' => $largeurFabrication,
+                                    'hauteur_fabrication' => $hauteurFabrication,
+                                ];
+                                
+                                // Utiliser la largeur comme valeur principale pour la compatibilité
+                                $customValue = $largeurDormantBois;
+                                $calculatedValue = $hauteurDormantBois;
+                                
+                                $successMessage = 'PDF généré avec succès - Largeur entre dormant bois: ' . number_format($largeurDormantBois, 0) . ' mm, Hauteur dormant bois: ' . number_format($hauteurDormantBois, 0) . ' mm, Largeur Fabrication: ' . number_format($largeurFabrication, 0) . ' mm, Hauteur Fabrication: ' . number_format($hauteurFabrication, 0) . ' mm' . ($particulariteCompensateur ? ', Particularité compensateur 10mm activée' : '');
+                            } else {
+                                // Pour les autres schémas : logique standard
+                                $customValue = (float) $request->request->get('custom_value');
+                                $calculatedValue = (float) $request->request->get('calculated_value');
+                                
+                                if ($customValue <= 0) {
+                                    $this->addFlash('error', 'Veuillez saisir une côte interne valide.');
+                                    return $this->redirectToRoute('app_configuration_pf_pdf', [
+                                        'projet' => $projet->getId(),
+                                        'confpf' => $confPf->getId()
+                                    ]);
+                                }
+                                
+                                $successMessage = 'PDF généré avec succès - Côte interne: ' . number_format($customValue, 0) . ' mm, Côte extérieur: ' . number_format($calculatedValue, 0) . ' mm';
+                            }
+                            
+                            // Préparer les valeurs additionnelles pour les schémas spécifiques
+                            $additionalValues = null;
+                            if ($pdfSchema->getNom() === 'Pose en applique sans tapées' || $pdfSchema->getNom() === 'Pose tunnelle') {
+                                $additionalValues = [
+                                    'largeur_tableau' => $largeurTableau,
+                                    'hauteur_tableau' => $hauteurTableau,
+                                    'largeur_fabrication' => $largeurFabrication,
+                                    'hauteur_fabrication' => $hauteurFabrication
+                                ];
+                            } elseif ($pdfSchema->getNom() === 'Pose applique avec tapées isolation') {
+                                $additionalValues = [
+                                    'largeur_tableau' => $largeurTableau,
+                                    'hauteur_tableau' => $hauteurTableau,
+                                    'doublage_largeur' => $doublageLargeur,
+                                    'doublage_hauteur' => $doublageHauteur,
+                                    'largeur_fabrication' => $largeurFabrication,
+                                    'hauteur_fabrication' => $hauteurFabrication
+                                ];
+                            } elseif ($pdfSchema->getNom() === 'Pose en rénovation') {
+                                $additionalValues = [
+                                    'largeur_dormant_bois' => $largeurDormantBois,
+                                    'hauteur_dormant_bois' => $hauteurDormantBois,
+                                    'particularite_compensateur' => $particulariteCompensateur,
+                                    'largeur_fabrication' => $largeurFabrication,
+                                    'hauteur_fabrication' => $hauteurFabrication,
+                                ];
+                            }
+                            
+                            // Générer le PDF avec le schéma sélectionné
+                            $pdfPath = $pdfGenerator->generatePlanPdf($confPf, $customValue, $calculatedValue, $pdfSchema, $additionalValues);
+                            $encodedPdfPath = base64_encode($pdfPath);
+                            
+                            $this->addFlash('success', $successMessage . ' avec le schéma "' . $pdfSchema->getNom() . '"');
+                        } catch (\Exception $e) {
+                            $this->addFlash('error', 'Erreur lors de la génération du PDF : ' . $e->getMessage());
+                        }
                     }
                 }
             }
@@ -927,6 +1119,8 @@ class ConfigurationController extends AbstractController
             'encodedPdfPath' => $encodedPdfPath,
             'customValue' => $request->request->get('custom_value'),
             'existingPdfs' => $existingPdfs,
+            'availableSchemas' => $availableSchemas,
+            'selectedSchemaId' => $request->request->get('pdf_schema_id'),
         ]);
     }
 

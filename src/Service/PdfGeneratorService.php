@@ -5,6 +5,7 @@ namespace App\Service;
 use TCPDF;
 use App\Entity\ConfPf;
 use App\Entity\ProjetPdf;
+use App\Entity\PdfSchema;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PdfGeneratorService
@@ -23,11 +24,19 @@ class PdfGeneratorService
         $this->calculationCoefficient = $calculationCoefficient;
     }
 
-    public function generatePlanPdf(ConfPf $confPf, float $customValue, ?float $calculatedValue = null): string
+    public function generatePlanPdf(ConfPf $confPf, float $customValue, ?float $calculatedValue = null, ?PdfSchema $pdfSchema = null, ?array $additionalValues = null): string
     {
         // Si la valeur calculée n'est pas fournie, la calculer avec le coefficient
         if ($calculatedValue === null) {
             $calculatedValue = $customValue * $this->calculationCoefficient;
+        }
+        
+        // Si aucun schéma n'est fourni, utiliser le schéma par défaut
+        if ($pdfSchema === null) {
+            $pdfSchema = $this->entityManager->getRepository(PdfSchema::class)->findDefaultSchema();
+            if (!$pdfSchema) {
+                throw new \Exception('Aucun schéma PDF par défaut trouvé.');
+            }
         }
         
         // Créer une nouvelle instance TCPDF
@@ -37,6 +46,10 @@ class PdfGeneratorService
         $pdf->SetPrintHeader(false);
         $pdf->SetPrintFooter(false);
 
+        // Supprimer les marges et les sauts automatiques pour éviter une page vide
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetAutoPageBreak(false, 0);
+
         // Définir les informations du document
         $pdf->SetCreator('Proposition Ouverture');
         $pdf->SetAuthor('System');
@@ -45,21 +58,86 @@ class PdfGeneratorService
         // Ajouter une page
         $pdf->AddPage();
 
-        // Utiliser directement l'image du schéma technique
-        $schemaPath = $this->projectDir . '/public/assets/plans/schemaProfil.png';
+        // Utiliser l'image du schéma sélectionné
+        $schemaPath = $this->projectDir . '/public' . $pdfSchema->getImagePath();
         
         if (!file_exists($schemaPath)) {
             throw new \Exception("Image du schéma technique manquante : $schemaPath");
         }
 
-        // Ajouter l'image directement dans le PDF (taille adaptée à la page A4)
-        $pdf->Image($schemaPath, 15, 20, 180, 135, 'PNG');
+        // Déterminer le format de l'image pour TCPDF
+        $imageInfo = getimagesize($schemaPath);
+        $imageFormat = 'PNG'; // Format par défaut
+        
+        if ($imageInfo !== false) {
+            switch ($imageInfo[2]) {
+                case IMAGETYPE_JPEG:
+                    $imageFormat = 'JPG';
+                    break;
+                case IMAGETYPE_PNG:
+                    $imageFormat = 'PNG';
+                    break;
+                case IMAGETYPE_GIF:
+                    $imageFormat = 'GIF';
+                    break;
+            }
+        }
 
-        // Ajouter les deux valeurs sur le plan
-        $this->addCustomValuesToPdf($pdf, $customValue, $calculatedValue);
+        // Ajouter l'image directement dans le PDF - centrée et maximisée
+        // Dimensions de la page A4 : 210mm x 297mm
+        // Marges : 15mm de chaque côté
+        $pageWidth = 210;
+        $pageHeight = 297;
+        $margin = 15;
+        $availableWidth = $pageWidth - (2 * $margin); // 180mm
+        $availableHeight = $pageHeight - (2 * $margin); // 267mm
+        
+        // Obtenir les dimensions réelles de l'image
+        if ($imageInfo !== false) {
+            $imageWidth = $imageInfo[0];
+            $imageHeight = $imageInfo[1];
+            $imageRatio = $imageWidth / $imageHeight;
+            
+            // Calculer la taille optimale en respectant l'homothétie
+            $displayWidth = $availableWidth;
+            $displayHeight = $displayWidth / $imageRatio;
+            
+            // Si la hauteur dépasse l'espace disponible, ajuster par la hauteur
+            if ($displayHeight > $availableHeight) {
+                $displayHeight = $availableHeight;
+                $displayWidth = $displayHeight * $imageRatio;
+            }
+            
+            // Centrer l'image
+            $x = ($pageWidth - $displayWidth) / 2;
+            $y = ($pageHeight - $displayHeight) / 2;
+            
+            $pdf->Image($schemaPath, $x, $y, $displayWidth, $displayHeight, $imageFormat, '', '', false, 300, '', false, false, 0, false, false, false);
+        } else {
+            // Fallback si getimagesize échoue
+            $pdf->Image($schemaPath, 15, 15, 0, 267, $imageFormat, '', '', false, 300, '', false, false, 0, false, false, false);
+        }
+
+        // Gérer différemment selon le type de schéma
+        if ($pdfSchema->getNom() === 'Pose en applique sans tapées') {
+            // Pour pose en applique sans tapées : ajouter les 4 valeurs spécifiques
+            $this->addAppliqueSansTapeesValues($pdf, $additionalValues ?: []);
+        } elseif ($pdfSchema->getNom() === 'Pose tunnelle') {
+            // Pour pose tunnelle : ajouter les 4 valeurs spécifiques
+            $this->addPoseTunnelleValues($pdf, $additionalValues ?: []);
+        } elseif ($pdfSchema->getNom() === 'Pose applique avec tapées isolation') {
+            // Pour pose applique avec tapées isolation : ajouter largeur et doublage
+            $this->addPoseAppliqueTapeesValues($pdf, $additionalValues ?: []);
+        } elseif ($pdfSchema->getNom() === 'Pose en rénovation') {
+            // Pour pose en rénovation : ajouter les dimensions dormant bois
+            $this->addPoseRenovationValues($pdf, $additionalValues ?: []);
+        } else {
+            // Pour les autres schémas : ajouter les deux valeurs standard
+            $this->addCustomValuesToPdf($pdf, $customValue, $calculatedValue);
+        }
 
         // Ajouter les informations de configuration  
-        $this->addConfigurationInfo($pdf, $confPf, $customValue);
+        $this->addConfigurationInfo($pdf, $confPf, $customValue, $pdfSchema, $additionalValues);
 
         // Générer le nom du fichier
         $fileName = 'plan_' . $confPf->getProjet()->getId() . '_' . date('YmdHis') . '.pdf';
@@ -75,7 +153,7 @@ class PdfGeneratorService
         $pdf->Output($filePath, 'F');
 
         // Enregistrer la relation en base de données
-        $this->saveProjetPdf($confPf, $fileName, $customValue, $filePath);
+        $this->saveProjetPdf($confPf, $fileName, $customValue, $filePath, $pdfSchema);
 
         return '/uploads/pdf/' . $fileName;
     }
@@ -111,13 +189,236 @@ class PdfGeneratorService
     }
 
     /**
+     * Ajoute les 4 valeurs spécifiques pour la pose en applique sans tapées
+     */
+    private function addAppliqueSansTapeesValues(TCPDF $pdf, array $values): void
+    {
+        // Définir la police
+        $pdf->SetFont('helvetica', 'B', 7);
+        $pdf->SetTextColor(0, 0, 0); // Noir pour les côtes
+
+        // Dimensions de la page A4 pour le calcul des positions
+        $pageWidth = 210;
+        $pageHeight = 297;
+        $centerX = $pageWidth / 2;
+        $centerY = $pageHeight / 2;
+
+        // Positions relatives au coin supérieur gauche de la page (0,0)
+        
+        // Largeur Tableaux finis - en haut, centré
+        if (isset($values['largeur_tableau'])) {
+            $pdf->SetXY(63, 67.7); // Position centrée en haut
+            $pdf->Cell(80, 6, (int)$values['largeur_tableau'] . ' mm', 0, 1, 'C');
+        }
+
+        // Hauteur Tableaux finis - position spécifique : 4cm du bord gauche, 17.5cm du haut
+        if (isset($values['hauteur_tableau'])) {
+            $xPosition = 109; // 4cm + 7cm - 0.2cm + 0.1cm = 10.9cm = 109mm du bord gauche
+            $yPosition = 224; // 19cm + 5cm - 3cm + 1.5cm - 0.1cm = 22.4cm = 224mm du haut
+            
+            $pdf->StartTransform();
+            $pdf->Rotate(90, $xPosition, $yPosition);
+            $pdf->SetXY($xPosition, $yPosition - 40);
+            $pdf->Cell(80, 6, (int)$values['hauteur_tableau'] . ' mm', 0, 1, 'C');
+            $pdf->StopTransform();
+        }
+
+        
+        if (isset($values['largeur_fabrication'])) {
+            $pdf->SetXY(79, 113); 
+            $pdf->Cell(80, 6, (int)$values['largeur_fabrication'] . ' mm', 0, 1, 'C');
+        }
+
+        
+        if (isset($values['hauteur_fabrication'])) {
+            $xPosition = 177; 
+            $yPosition = 226; 
+            
+            $pdf->StartTransform();
+            $pdf->Rotate(90, $xPosition, $yPosition);
+            $pdf->SetXY($xPosition, $yPosition - 40);
+            $pdf->Cell(80, 6, (int)$values['hauteur_fabrication'] . ' mm', 0, 1, 'C');
+            $pdf->StopTransform();
+        }
+    }
+
+    /**
+     * Ajoute les valeurs spécifiques pour le schéma "Pose tunnelle"
+     */
+    private function addPoseTunnelleValues(TCPDF $pdf, array $values): void
+    {
+        // Définir la police
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->SetTextColor(0, 0, 0); // Noir pour les côtes
+
+        // Dimensions de la page A4 pour le calcul des positions
+        $pageWidth = 210;
+        $pageHeight = 297;
+        $centerX = $pageWidth / 2;
+        $centerY = $pageHeight / 2;
+
+        // Positions relatives au coin supérieur gauche de la page (0,0)
+        
+        // Largeur Tableaux finis
+        if (isset($values['largeur_tableau'])) {
+            $pdf->SetXY(64, 53);
+            $pdf->Cell(80, 6, (int)$values['largeur_tableau'] . ' mm', 0, 1, 'C');
+        }
+
+        // Hauteur Tableaux finis
+        if (isset($values['hauteur_tableau'])) {
+            $xPosition = 105;
+            $yPosition = 234;
+            
+            $pdf->StartTransform();
+            $pdf->Rotate(90, $xPosition, $yPosition);
+            $pdf->SetXY($xPosition, $yPosition - 40);
+            $pdf->Cell(80, 6, (int)$values['hauteur_tableau'] . ' mm', 0, 1, 'C');
+            $pdf->StopTransform();
+        }
+
+        // Largeur Fabrication
+        if (isset($values['largeur_tableau']) || isset($values['largeur_fabrication'])) {
+            $fabricationWidth = null;
+            if (isset($values['largeur_tableau'])) {
+                $fabricationWidth = (float)$values['largeur_tableau'] - 10; // Consistance avec formulaire tunnelle
+            }
+            if ($fabricationWidth === null && isset($values['largeur_fabrication'])) {
+                $fabricationWidth = (float)$values['largeur_fabrication'];
+            }
+            if ($fabricationWidth !== null) {
+                $pdf->SetXY(77, 92);
+                $pdf->Cell(80, 6, (int)$fabricationWidth . ' mm', 0, 1, 'C');
+            }
+        }
+
+        // Hauteur Fabrication
+        if (isset($values['hauteur_tableau']) || isset($values['hauteur_fabrication'])) {
+            $fabricationHeight = null;
+            if (isset($values['hauteur_tableau'])) {
+                $fabricationHeight = (float)$values['hauteur_tableau'] - 10; // Consistance avec formulaire tunnelle
+            }
+            if ($fabricationHeight === null && isset($values['hauteur_fabrication'])) {
+                $fabricationHeight = (float)$values['hauteur_fabrication'];
+            }
+            if ($fabricationHeight !== null) {
+                $xPosition = 179;
+                $yPosition = 216;
+                
+                $pdf->StartTransform();
+                $pdf->Rotate(90, $xPosition, $yPosition);
+                $pdf->SetXY($xPosition, $yPosition - 40);
+                $pdf->Cell(80, 6, (int)$fabricationHeight . ' mm', 0, 1, 'C');
+                $pdf->StopTransform();
+            }
+        }
+    }
+
+    /**
+     * Ajoute les valeurs spécifiques pour le schéma "Pose applique avec tapées isolation"
+     */
+    private function addPoseAppliqueTapeesValues(TCPDF $pdf, array $values): void
+    {
+        // Définir la police
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->SetTextColor(0, 0, 0); // Noir pour les côtes
+
+        // Largeur Tableaux finis (position horizontale en haut)
+        if (isset($values['largeur_tableau'])) {
+            $pdf->SetXY(61, 58);
+            $pdf->Cell(80, 6, (int)$values['largeur_tableau'] . ' mm', 0, 1, 'C');
+        }
+
+        // Hauteur Tableaux finis (position verticale à gauche avec rotation)
+        if (isset($values['hauteur_tableau'])) {
+            $xPosition = 124; // Position X à gauche
+            $yPosition = 230; // Position Y pour la hauteur
+            
+            $pdf->StartTransform();
+            $pdf->Rotate(90, $xPosition, $yPosition);
+            $pdf->SetXY($xPosition, $yPosition);
+            $pdf->Cell(80, 6, (int)$values['hauteur_tableau'] . ' mm', 0, 1, 'C');
+            $pdf->StopTransform();
+        }
+
+        // Largeur Fabrication (position horizontale en bas)
+        if (isset($values['largeur_fabrication'])) {
+            $pdf->SetXY(60, 107);
+            $pdf->Cell(80, 6, (int)$values['largeur_fabrication'] . ' mm', 0, 1, 'C');
+        }
+
+        // Hauteur Fabrication (position verticale à droite avec rotation)
+        if (isset($values['hauteur_fabrication'])) {
+            $xPosition = 222; // Position X à droite
+            $yPosition = 212; // Position Y pour la hauteur
+            
+            $pdf->StartTransform();
+            $pdf->Rotate(90, $xPosition, $yPosition);
+            $pdf->SetXY($xPosition, $yPosition - 40);
+            $pdf->Cell(80, 6, (int)$values['hauteur_fabrication'] . ' mm', 0, 1, 'C');
+            $pdf->StopTransform();
+        }
+
+        // Note: Les valeurs de doublage sont affichées dans la section "Informations de configuration"
+    }
+
+    /**
+     * Ajoute les valeurs spécifiques pour le schéma "Pose en rénovation"
+     */
+    private function addPoseRenovationValues(TCPDF $pdf, array $values): void
+    {
+        // Définir la police
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->SetTextColor(0, 0, 0); // Noir pour les côtes
+
+        // Largeur entre dormant bois (position horizontale en haut)
+        if (isset($values['largeur_dormant_bois'])) {
+            $pdf->SetXY(60, 56);
+            $pdf->Cell(80, 6, (int)$values['largeur_dormant_bois'] . ' mm', 0, 1, 'C');
+        }
+
+        // Hauteur dormant bois (position verticale à gauche avec rotation)
+        if (isset($values['hauteur_dormant_bois'])) {
+            $xPosition = 135; // Position X à gauche
+            $yPosition = 224; // Position Y pour la hauteur
+            
+            $pdf->StartTransform();
+            $pdf->Rotate(90, $xPosition, $yPosition);
+            $pdf->SetXY($xPosition, $yPosition - 40);
+            $pdf->Cell(80, 6, (int)$values['hauteur_dormant_bois'] . ' mm', 0, 1, 'C');
+            $pdf->StopTransform();
+        }
+
+        // Largeur Fabrication (position horizontale en bas)
+        if (isset($values['largeur_fabrication'])) {
+            $pdf->SetXY(60, 99);
+            $pdf->Cell(80, 6, (int)$values['largeur_fabrication'] . ' mm', 0, 1, 'C');
+        }
+
+        // Hauteur Fabrication (position verticale à droite avec rotation)
+        if (isset($values['hauteur_fabrication'])) {
+            $xPosition = 205; // Position X à droite
+            $yPosition = 217; // Position Y pour la hauteur
+            
+            $pdf->StartTransform();
+            $pdf->Rotate(90, $xPosition, $yPosition);
+            $pdf->SetXY($xPosition, $yPosition - 40);
+            $pdf->Cell(80, 6, (int)$values['hauteur_fabrication'] . ' mm', 0, 1, 'C');
+            $pdf->StopTransform();
+        }
+
+        // Note: La particularité compensateur est affichée dans la section "Informations de configuration"
+    }
+
+    /**
      * Enregistre la relation PDF/Projet en base de données
      */
-    private function saveProjetPdf(ConfPf $confPf, string $fileName, float $customValue, string $fullPath): void
+    private function saveProjetPdf(ConfPf $confPf, string $fileName, float $customValue, string $fullPath, PdfSchema $pdfSchema): void
     {
         $projetPdf = new ProjetPdf();
         $projetPdf->setProjet($confPf->getProjet());
         $projetPdf->setConfPf($confPf);
+        $projetPdf->setPdfSchema($pdfSchema);
         $projetPdf->setFileName($fileName);
         $projetPdf->setFilePath('/uploads/pdf/' . $fileName);
         $projetPdf->setCustomValue($customValue);
@@ -127,20 +428,28 @@ class PdfGeneratorService
         $this->entityManager->flush();
     }
 
-    private function addConfigurationInfo(TCPDF $pdf, ConfPf $confPf, float $customValue): void
+    private function addConfigurationInfo(TCPDF $pdf, ConfPf $confPf, float $customValue, ?PdfSchema $pdfSchema = null, ?array $additionalValues = null): void
     {
-        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetFont('helvetica', '', 7); // Police réduite
         $pdf->SetTextColor(0, 0, 0); // Noir pour les informations
 
-        $y = 180; // Position de départ pour les informations
+        // Position dans le coin inférieur gauche
+        $marginLeft = 10;
+        $marginBottom = 30; // 10mm + 20mm (2cm) = 30mm de marge bas
+        $pageHeight = 297; // Hauteur page A4
+        
+        // Calculer la position Y de départ (du bas vers le haut)
+        $lineHeight = 4; // Hauteur de ligne réduite
+        $nbLines = 10; // Nombre approximatif de lignes
+        $y = $pageHeight - $marginBottom - ($nbLines * $lineHeight);
 
         // Titre
-        $pdf->SetXY(10, $y);
-        $pdf->SetFont('helvetica', 'B', 12);
-        $pdf->Cell(0, 8, 'Informations de configuration', 0, 1, 'L');
-        $y += 10;
+        $pdf->SetXY($marginLeft, $y);
+        $pdf->SetFont('helvetica', 'B', 8); // Titre légèrement plus grand
+        $pdf->Cell(0, 6, 'Informations de configuration', 0, 1, 'L');
+        $y += 8;
 
-        $pdf->SetFont('helvetica', '', 9);
+        $pdf->SetFont('helvetica', '', 7); // Retour à la police normale
 
         // Informations du projet
         $infos = [
@@ -152,13 +461,31 @@ class PdfGeneratorService
             'Dimensions: ' . ($confPf->getLargeur() ? $confPf->getLargeur() . ' x ' . $confPf->getHauteur() . ' mm' : 'Non définies'),
             'Quantité: ' . ($confPf->getQuantite() ?: 'Non définie'),
             'Valeur spécifique: ' . number_format($customValue, 0) . ' mm',
-            'Date de génération: ' . date('d/m/Y H:i')
         ];
+        
+        // Ajouter les valeurs de doublage si c'est une pose applique avec tapées isolation
+        if ($pdfSchema && $pdfSchema->getNom() === 'Pose applique avec tapées isolation' && $additionalValues) {
+            if (isset($additionalValues['doublage_largeur'])) {
+                $infos[] = 'Doublage Largeur: ' . number_format($additionalValues['doublage_largeur'], 0) . ' mm';
+            }
+            if (isset($additionalValues['doublage_hauteur'])) {
+                $infos[] = 'Doublage Hauteur: ' . number_format($additionalValues['doublage_hauteur'], 0) . ' mm';
+            }
+        }
+        
+        // Ajouter la particularité compensateur si c'est une pose en rénovation
+        if ($pdfSchema && $pdfSchema->getNom() === 'Pose en rénovation' && $additionalValues) {
+            if (isset($additionalValues['particularite_compensateur']) && $additionalValues['particularite_compensateur']) {
+                $infos[] = 'Particularité: Compensateur 10mm';
+            }
+        }
+        
+        $infos[] = 'Date de génération: ' . date('d/m/Y H:i');
 
         foreach ($infos as $info) {
-            $pdf->SetXY(10, $y);
-            $pdf->Cell(0, 6, $info, 0, 1, 'L');
-            $y += 6;
+            $pdf->SetXY($marginLeft, $y);
+            $pdf->Cell(0, $lineHeight, $info, 0, 1, 'L');
+            $y += $lineHeight;
         }
     }
 }

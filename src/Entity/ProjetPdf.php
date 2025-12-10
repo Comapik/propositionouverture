@@ -24,6 +24,10 @@ class ProjetPdf
     #[ORM\JoinColumn(nullable: true)]
     private ?ConfPf $confPf = null;
 
+    #[ORM\ManyToOne(targetEntity: PdfSchema::class, inversedBy: 'projetPdfs')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?PdfSchema $pdfSchema = null;
+
     #[ORM\Column(length: 255)]
     private ?string $fileName = null;
 
@@ -134,6 +138,17 @@ class ProjetPdf
     {
         $this->createdAt = $createdAt;
 
+        return $this;
+    }
+
+    public function getPdfSchema(): ?PdfSchema
+    {
+        return $this->pdfSchema;
+    }
+
+    public function setPdfSchema(?PdfSchema $pdfSchema): static
+    {
+        $this->pdfSchema = $pdfSchema;
         return $this;
     }
 
