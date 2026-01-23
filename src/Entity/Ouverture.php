@@ -38,6 +38,10 @@ class Ouverture
     #[Assert\Url(message: 'L\'URL de l\'image doit être valide')]
     private ?string $urlImage = null;
 
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(choices: ['int', 'ext'], message: 'Le sens d\'ouverture doit être "int" ou "ext".')]
+    private ?string $sensOuverture = null;
+
     #[ORM\ManyToOne(targetEntity: SousCategorie::class)]
     #[ORM\JoinColumn(name: 'sous_categorie_id')]
     private ?SousCategorie $sousCategorie = null;
@@ -143,6 +147,17 @@ class Ouverture
             $typeFenetrePorte->removeOuverture($this);
         }
 
+        return $this;
+    }
+
+    public function getSensOuverture(): ?string
+    {
+        return $this->sensOuverture;
+    }
+
+    public function setSensOuverture(?string $sensOuverture): static
+    {
+        $this->sensOuverture = $sensOuverture;
         return $this;
     }
 

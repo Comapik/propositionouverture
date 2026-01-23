@@ -229,12 +229,76 @@
                                                                 Supprimer
                                                             </button>
                                                         </form>
+
+                                                        {# Formulaire pour ajouter une ouverture compatible en conservant les systèmes existants #}
+                                                        {% set ouvertureIdsExistantes = [] %}
+                                                        {% for compatibilite in compatibilites[type.id] %}
+                                                            {% set ouvertureIdsExistantes = ouvertureIdsExistantes|merge([compatibilite.ouverture.id]) %}
+                                                        {% endfor %}
+
+                                                        {% set ouverturesCandidates = [] %}
+                                                        {% for ouverture in ouvertures %}
+                                                            {% if ouverture.id not in ouvertureIdsExistantes %}
+                                                                {% set ouverturesCandidates = ouverturesCandidates|merge([ouverture]) %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        <form method="post" 
+                                                              action="{{ path('app_temp_type_fenetre_porte_add_ouverture', {id: type.id}) }}" 
+                                                              class="mt-2">
+                                                            {% if ouverturesCandidates|length > 0 %}
+                                                                <select name="ouverture_ids[]" class="form-select form-select-sm mb-2" multiple size="6" required>
+                                                                    {% for ouverture in ouverturesCandidates %}
+                                                                        <option value="{{ ouverture.id }}">{{ ouverture.nom }}</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                                                    <i class="bi bi-plus-circle"></i>
+                                                                    Ajouter sélection
+                                                                </button>
+                                                                <small class="text-muted d-block mt-1">Associé à tous les systèmes déjà compatibles. Cmd/Ctrl+clic pour multi-sélection.</small>
+                                                            {% else %}
+                                                                <small class="text-muted d-block">Toutes les ouvertures sont déjà associées.</small>
+                                                            {% endif %}
+                                                        </form>
+
+                                                        {# Formulaire pour ajouter un système compatible en conservant les ouvertures existantes #}
+                                                        {% set systemeIdsExistants = [] %}
+                                                        {% for compatibilite in compatibilites[type.id] %}
+                                                            {% if compatibilite.systeme %}
+                                                                {% set systemeIdsExistants = systemeIdsExistants|merge([compatibilite.systeme.id]) %}
+                                                            {% endif %}
+                                                        {% endfor %}
+
+                                                        {% set systemesCandidates = [] %}
+                                                        {% for systeme in systemes %}
+                                                            {% if systeme.id not in systemeIdsExistants %}
+                                                                {% set systemesCandidates = systemesCandidates|merge([systeme]) %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        <form method="post"
+                                                              action="{{ path('app_temp_type_fenetre_porte_add_systeme', {id: type.id}) }}"
+                                                              class="mt-2">
+                                                            {% if systemesCandidates|length > 0 %}
+                                                                <select name="systeme_ids[]" class="form-select form-select-sm mb-2" multiple size="6" required>
+                                                                    {% for systeme in systemesCandidates %}
+                                                                        <option value="{{ systeme.id }}">{{ systeme.nom }} ({{ systeme.fournisseur.marque }})</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                                                    <i class="bi bi-plus-circle"></i>
+                                                                    Ajouter sélection
+                                                                </button>
+                                                                <small class="text-muted d-block mt-1">Associé à toutes les ouvertures déjà compatibles. Cmd/Ctrl+clic pour multi-sélection.</small>
+                                                            {% else %}
+                                                                <small class="text-muted d-block">Tous les systèmes sont déjà associés.</small>
+                                                            {% endif %}
+                                                        </form>
                                                     </td>
                                                 </tr>
 
                                                 <!-- Modal pour modifier les associations -->
                                                 <div class="modal fade" id="associateModal{{ type.id }}" tabindex="-1">
-                                                    <div class="modal-dialog">
+                                                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
                                                         <div class="modal-content">
                                                             <div class="modal-header">
                                                                 <h5 class="modal-title">
@@ -345,8 +409,14 @@
 }
 
 .modal-body {
-    max-height: 400px;
+    max-height: 70vh;
     overflow-y: auto;
+}
+
+/* Rendre la colonne Actions plus large pour accueillir les formulaires */
+.table th:last-child,
+.table td:last-child {
+    min-width: 520px;
 }
 </style>
 {% endblock %}

@@ -450,8 +450,17 @@ function continueConfiguration() {
         // Soumettre le formulaire d'upload
         form.submit();
     } else {
-        // Pas de photos à uploader, rediriger directement
-        window.location.href = '{{ path('app_configuration_pf', {projet: projet.id}) }}';
+        // Pas de photos à uploader, soumettre avec skip_photos pour marquer l'étape comme ignorée
+        const skipInput = document.createElement('input');
+        skipInput.type = 'hidden';
+        skipInput.name = 'skip_photos';
+        skipInput.value = '1';
+        form.appendChild(skipInput);
+        
+        continueBtn.disabled = true;
+        continueBtn.innerHTML = '<i class="bi bi-arrow-right"></i> Redirection...';
+        
+        form.submit();
     }
 }
 

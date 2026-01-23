@@ -229,4 +229,172 @@ class TempTypeFenetrePorteController extends AbstractController
 
         return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
     }
+
+    #[Route('/{id}/add-ouverture', name: 'app_temp_type_fenetre_porte_add_ouverture', methods: ['POST'])]
+    public function addOuvertureCompatible(TypeFenetrePorte $type, Request $request): Response
+    {
+        $ouvertureIds = $request->request->all('ouverture_ids');
+        if (!$ouvertureIds || count($ouvertureIds) === 0) {
+            $single = $request->request->get('ouverture_id');
+            if ($single) {
+                $ouvertureIds = [$single];
+            }
+        }
+        if (!$ouvertureIds || count($ouvertureIds) === 0) {
+            $this->addFlash('error', "Aucune ouverture sélectionnée");
+            return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+        }
+
+        $ouvertures = [];
+        foreach ($ouvertureIds as $oid) {
+            $ouv = $this->entityManager->getRepository(Ouverture::class)->find($oid);
+            if ($ouv) {
+                $ouvertures[$ouv->getId()] = $ouv;
+            }
+        }
+        if (count($ouvertures) === 0) {
+            $this->addFlash('error', "Aucune ouverture valide trouvée");
+            return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+        }
+
+        // Récupérer les systèmes déjà compatibles avec ce type
+        $existingCompatibilities = $this->entityManager->getRepository(TypeFenetrePorteCompatibilite::class)
+            ->findBy(['typeFenetrePorte' => $type]);
+
+        $systemesUniques = [];
+        foreach ($existingCompatibilities as $compat) {
+            $systeme = $compat->getSysteme();
+            if ($systeme) {
+                $systemesUniques[$systeme->getId()] = $systeme;
+            }
+        }
+
+        if (count($systemesUniques) === 0) {
+            $this->addFlash('warning', "Aucun système déjà compatible pour ce type. Définissez d'abord des systèmes via 'Relations'.");
+            return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+        }
+
+        $created = 0;
+        $skipped = 0;
+        foreach ($ouvertures as $ouverture) {
+            foreach ($systemesUniques as $systeme) {
+                // Vérifier si la compatibilité existe déjà
+                $existing = $this->entityManager->getRepository(TypeFenetrePorteCompatibilite::class)->findOneBy([
+                    'typeFenetrePorte' => $type,
+                    'ouverture' => $ouverture,
+                    'systeme' => $systeme,
+                ]);
+
+                if ($existing) {
+                    $skipped++;
+                    continue;
+                }
+
+                $compat = new TypeFenetrePorteCompatibilite();
+                $compat->setTypeFenetrePorte($type);
+                $compat->setOuverture($ouverture);
+                $compat->setSysteme($systeme);
+                $this->entityManager->persist($compat);
+                $created++;
+            }
+        }
+
+        if ($created > 0) {
+            $this->entityManager->flush();
+            $this->addFlash('success', sprintf(
+                "Ajouté %d compatibilité(s) pour %d ouverture(s) (doublons ignorés: %d)",
+                $created,
+                count($ouvertures),
+                $skipped
+            ));
+        } else {
+            $this->addFlash('info', "Aucune compatibilité créée (tout existait déjà).");
+        }
+
+        return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+    }
+
+    #[Route('/{id}/add-systeme', name: 'app_temp_type_fenetre_porte_add_systeme', methods: ['POST'])]
+    public function addSystemeCompatible(TypeFenetrePorte $type, Request $request): Response
+    {
+        $systemeIds = $request->request->all('systeme_ids');
+        if (!$systemeIds || count($systemeIds) === 0) {
+            $single = $request->request->get('systeme_id');
+            if ($single) {
+                $systemeIds = [$single];
+            }
+        }
+        if (!$systemeIds || count($systemeIds) === 0) {
+            $this->addFlash('error', "Aucun système sélectionné");
+            return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+        }
+
+        $systemes = [];
+        foreach ($systemeIds as $sid) {
+            $sys = $this->entityManager->getRepository(Systeme::class)->find($sid);
+            if ($sys) {
+                $systemes[$sys->getId()] = $sys;
+            }
+        }
+        if (count($systemes) === 0) {
+            $this->addFlash('error', "Aucun système valide trouvé");
+            return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+        }
+
+        // Récupérer les ouvertures déjà compatibles avec ce type
+        $existingCompatibilities = $this->entityManager->getRepository(TypeFenetrePorteCompatibilite::class)
+            ->findBy(['typeFenetrePorte' => $type]);
+
+        $ouverturesUniques = [];
+        foreach ($existingCompatibilities as $compat) {
+            $ouverture = $compat->getOuverture();
+            if ($ouverture) {
+                $ouverturesUniques[$ouverture->getId()] = $ouverture;
+            }
+        }
+
+        if (count($ouverturesUniques) === 0) {
+            $this->addFlash('warning', "Aucune ouverture déjà compatible pour ce type. Définissez d'abord des ouvertures via 'Relations'.");
+            return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+        }
+
+        $created = 0;
+        $skipped = 0;
+        foreach ($systemes as $systeme) {
+            foreach ($ouverturesUniques as $ouverture) {
+                // Vérifier si la compatibilité existe déjà
+                $existing = $this->entityManager->getRepository(TypeFenetrePorteCompatibilite::class)->findOneBy([
+                    'typeFenetrePorte' => $type,
+                    'ouverture' => $ouverture,
+                    'systeme' => $systeme,
+                ]);
+
+                if ($existing) {
+                    $skipped++;
+                    continue;
+                }
+
+                $compat = new TypeFenetrePorteCompatibilite();
+                $compat->setTypeFenetrePorte($type);
+                $compat->setOuverture($ouverture);
+                $compat->setSysteme($systeme);
+                $this->entityManager->persist($compat);
+                $created++;
+            }
+        }
+
+        if ($created > 0) {
+            $this->entityManager->flush();
+            $this->addFlash('success', sprintf(
+                "Ajouté %d compatibilité(s) pour %d système(s) (doublons ignorés: %d)",
+                $created,
+                count($systemes),
+                $skipped
+            ));
+        } else {
+            $this->addFlash('info', "Aucune compatibilité créée (tout existait déjà).");
+        }
+
+        return $this->redirectToRoute('app_temp_type_fenetre_porte_index');
+    }
 }

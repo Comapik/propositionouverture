@@ -8,6 +8,7 @@ use App\Entity\Projet;
 use App\Entity\Produit;
 use App\Entity\ConfPf;
 use App\Entity\Fournisseur;
+use App\Entity\TypeFenetrePorte;
 use App\Form\ProductSelectionType;
 use App\Form\ConfPfDetailsType;
 use App\Service\TypeFenetrePorteCompatibiliteService;
@@ -51,7 +52,7 @@ class ConfigurationController extends AbstractController
             $confPf->setProjet($projet);
         }
 
-        // Si aucune photo n'a été ajoutée et que l'étape n'a pas été ignorée, rediriger vers l'étape photos
+        // Rediriger vers l'étape photos si elle n'a pas encore été visitée (photos ajoutées ou étape ignorée)
         if (!$this->hasPhotos($projet) && !$this->hasPhotosSkipped($projet, $request)) {
             return $this->redirectToRoute('app_configuration_pf_photos', [
                 'projet' => $projet->getId()
@@ -242,6 +243,14 @@ class ConfigurationController extends AbstractController
                     
                     $this->addFlash('success', 'Sous-catégorie sélectionnée : ' . $sousCategorie->getNom());
                     
+                    // Vérifier si on est dans le contexte des portes avec orientation
+                    if ($this->isDoorWithOrientationContext($confPf)) {
+                        return $this->redirectToRoute('app_configuration_pf_orientation', [
+                            'projet' => $projet->getId(),
+                            'confpf' => $confPf->getId(),
+                        ]);
+                    }
+                    
                     // Redirect to opening selection
                     return $this->redirectToRoute('app_configuration_pf_ouverture', [
                         'projet' => $projet->getId(),
@@ -280,6 +289,15 @@ class ConfigurationController extends AbstractController
         $ouvertures = $this->entityManager->getRepository(\App\Entity\Ouverture::class)
             ->findBySousCategorie($sousCategorie->getId());
 
+        // Filtrer les ouvertures selon le sens choisi si on est dans le contexte porte avec orientation
+        if ($this->isDoorWithOrientationContext($confPf) && $confPf->getSensOuverture()) {
+            $ouvertures = array_filter($ouvertures, function($ouverture) use ($confPf) {
+                $sensOuverture = $ouverture->getSensOuverture();
+                // Inclure les ouvertures qui correspondent au sens choisi ou qui n'ont pas de sens défini
+                return !$sensOuverture || $sensOuverture === $confPf->getSensOuverture();
+            });
+        }
+
         if ($request->isMethod('POST')) {
             $ouvertureId = $request->request->get('ouverture_id');
             if ($ouvertureId) {
@@ -289,6 +307,7 @@ class ConfigurationController extends AbstractController
                 if ($ouverture) {
                     // Sauvegarder l'ouverture directement dans la relation
                     $confPf->setOuverture($ouverture);
+                    $confPf->setTypeFenetrePorte(null); // Réinitialiser le type
                     $this->entityManager->flush();
                     
                     $this->addFlash('success', 'Ouverture sélectionnée : ' . $ouverture->getNom());
@@ -314,6 +333,128 @@ class ConfigurationController extends AbstractController
         ]);
     }
 
+    #[Route('/pf/{projet}/orientation/{confpf}', name: 'app_configuration_pf_orientation', methods: ['GET', 'POST'])]
+    public function configurePfOrientation(
+        #[MapEntity(mapping: ['projet' => 'id'])] Projet $projet,
+        #[MapEntity(mapping: ['confpf' => 'id'])] ConfPf $confPf,
+        Request $request
+    ): Response {
+        if (!$confPf->getSousCategorie()) {
+            $this->addFlash('error', 'Veuillez sélectionner une sous-catégorie avant de choisir le sens.');
+            return $this->redirectToRoute('app_configuration_pf_subcategory', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        // Vérifier si on est dans le contexte des portes avec orientation
+        if (!$this->isDoorWithOrientationContext($confPf)) {
+            // Si ce n'est pas des portes alu, passer directement à l'étape suivante
+            return $this->redirectToRoute('app_configuration_pf_ouverture', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        $orientationOptions = ['int', 'ext'];
+        $labels = [
+            'ext' => "Portes ouverture vers l'extérieur",
+            'int' => "Portes ouverture vers l'intérieur",
+        ];
+
+        if ($request->isMethod('POST')) {
+            $sens = $request->request->get('sens_ouverture');
+            if ($sens && in_array($sens, $orientationOptions, true)) {
+                $confPf->setSensOuverture($sens);
+                $this->entityManager->flush();
+
+                $this->addFlash('success', 'Sens choisi : ' . ($labels[$sens] ?? $sens));
+                return $this->redirectToRoute('app_configuration_pf_ouverture', [
+                    'projet' => $projet->getId(),
+                    'confpf' => $confPf->getId(),
+                ]);
+            }
+
+            $this->addFlash('warning', 'Veuillez choisir un sens d\'ouverture.');
+        }
+
+        return $this->render('configuration/select_orientation.html.twig', [
+            'projet' => $projet,
+            'confpf' => $confPf,
+            'produit' => $confPf->getProduit(),
+            'categorie' => $confPf->getCategorie(),
+            'sousCategorie' => $confPf->getSousCategorie(),
+            'orientationOptions' => $orientationOptions,
+            'labels' => $labels,
+        ]);
+    }
+
+    /**
+     * Retourne les sens d'ouverture disponibles pour la configuration en cours.
+     *
+     * @return string[]
+     */
+    private function getOrientationOptions(ConfPf $confPf): array
+    {
+        // Si le contexte n'est pas une porte, ne pas proposer d'orientation
+        if (!$this->isDoorWithOrientationContext($confPf)) {
+            return [];
+        }
+
+        $ouverture = $confPf->getOuverture();
+        if (!$ouverture) {
+            return [];
+        }
+
+        // Vérifier si l'ouverture a un sens défini
+        $sens = $ouverture->getSensOuverture();
+        if ($sens && in_array($sens, ['int', 'ext'], true)) {
+            return [$sens];
+        }
+
+        // Fallback heuristique pour les portes avec orientation (alu, PVC d'entrée, PVC de service)
+        if ($this->isDoorWithOrientationContext($confPf)) {
+            return ['int', 'ext'];
+        }
+
+        return [];
+    }
+
+    private function shouldAskOrientation(array $orientationOptions): bool
+    {
+        $filtered = array_values(array_intersect($orientationOptions, ['int', 'ext']));
+        return count($filtered) > 1;
+    }
+
+    private function isDoorWithOrientationContext(ConfPf $confPf): bool
+    {
+        $productName = strtolower((string) $confPf->getProduit()?->getNom());
+        $categoryName = strtolower((string) $confPf->getCategorie()?->getNom());
+        $subCategoryName = strtolower((string) $confPf->getSousCategorie()?->getNom());
+
+        // Exclure tout ce qui est coulissant (dans n'importe quel libellé)
+        if (str_contains($productName . ' ' . $categoryName . ' ' . $subCategoryName, 'couliss')) {
+            return false;
+        }
+
+        // Exclure explicitement la sous-catégorie Fenêtre PVC (avec ou sans accent)
+        if (
+            str_contains($subCategoryName, 'fenêtre pvc') ||
+            str_contains($subCategoryName, 'fenetre pvc') ||
+            (str_contains($subCategoryName, 'fenetre') && str_contains($subCategoryName, 'pvc')) ||
+            (str_contains($subCategoryName, 'fenêtre') && str_contains($subCategoryName, 'pvc'))
+        ) {
+            return false;
+        }
+
+        // Étape limitée aux PRODUITS contenant explicitement "porte"
+        if (!str_contains($productName, 'porte')) {
+            return false;
+        }
+
+        return true;
+    }
+
     #[Route('/pf/{projet}/details/{confpf}', name: 'app_configuration_pf_details', methods: ['GET', 'POST'])]
     public function configurePfDetails(
         #[MapEntity(mapping: ['projet' => 'id'])] Projet $projet,
@@ -324,6 +465,18 @@ class ConfigurationController extends AbstractController
         if (!$confPf->getProduit() || !$confPf->getCategorie() || !$confPf->getSousCategorie()) {
             $this->addFlash('error', 'Configuration incomplète. Veuillez recommencer le processus.');
             return $this->redirectToRoute('app_configuration_pf', ['projet' => $projet->getId()]);
+        }
+
+        $orientationOptions = [];
+        if ($confPf->getOuverture()) {
+            $orientationOptions = $this->getOrientationOptions($confPf);
+            if ($this->shouldAskOrientation($orientationOptions) && !$confPf->getSensOuverture()) {
+                $this->addFlash('warning', 'Veuillez sélectionner le sens d\'ouverture.');
+                return $this->redirectToRoute('app_configuration_pf_orientation', [
+                    'projet' => $projet->getId(),
+                    'confpf' => $confPf->getId(),
+                ]);
+            }
         }
 
         // Récupérer les fournisseurs pour le produit sélectionné
@@ -988,14 +1141,21 @@ class ConfigurationController extends AbstractController
                                 
                                 $successMessage = 'PDF généré avec succès - Largeur Tableaux: ' . number_format($largeurTableau, 0) . ' mm, Hauteur: ' . number_format($hauteurTableau, 0) . ' mm, Largeur Fabrication: ' . number_format($largeurFabrication, 0) . ' mm, Hauteur Fabrication: ' . number_format($hauteurFabrication, 0) . ' mm';
                             } elseif ($pdfSchema->getNom() === 'Pose applique avec tapées isolation') {
-                                // Pour pose applique avec tapées isolation : récupérer largeur, hauteur et les deux doublages
+                                // Pour pose applique avec tapées isolation : récupérer largeur, hauteur et les deux tapées
                                 $largeurTableau = (float) $request->request->get('largeur_tableau_tapees');
                                 $hauteurTableau = (float) $request->request->get('hauteur_tableau_tapees');
-                                $doublageLargeur = (float) $request->request->get('doublage_largeur');
-                                $doublageHauteur = (float) $request->request->get('doublage_hauteur');
+                                $tapeesLargeur = (float) $request->request->get('tapees_largeur');
+                                $tapeesHauteur = (float) $request->request->get('tapees_hauteur');
                                 
-                                if ($largeurTableau <= 0 || $hauteurTableau <= 0 || $doublageLargeur <= 0 || $doublageHauteur <= 0) {
-                                    $this->addFlash('error', 'Veuillez saisir des valeurs valides pour les tableaux finis (largeur et hauteur) et les doublages (largeur et hauteur).');
+                                // Validation détaillée
+                                $errors = [];
+                                if ($largeurTableau <= 0) $errors[] = 'Largeur tableaux finis';
+                                if ($hauteurTableau <= 0) $errors[] = 'Hauteur tableaux finis';
+                                if ($tapeesLargeur <= 0) $errors[] = 'Tapées largeur';
+                                if ($tapeesHauteur <= 0) $errors[] = 'Tapées hauteur';
+                                
+                                if (!empty($errors)) {
+                                    $this->addFlash('error', 'Champs manquants ou invalides : ' . implode(', ', $errors) . '. Veuillez remplir tous les champs requis.');
                                     return $this->redirectToRoute('app_configuration_pf_pdf', [
                                         'projet' => $projet->getId(),
                                         'confpf' => $confPf->getId()
@@ -1012,8 +1172,8 @@ class ConfigurationController extends AbstractController
                                 $additionalValues = [
                                     'largeur_tableau' => $largeurTableau,
                                     'hauteur_tableau' => $hauteurTableau,
-                                    'doublage_largeur' => $doublageLargeur,
-                                    'doublage_hauteur' => $doublageHauteur,
+                                    'tapees_largeur' => $tapeesLargeur,
+                                    'tapees_hauteur' => $tapeesHauteur,
                                     'largeur_fabrication' => $largeurFabrication,
                                     'hauteur_fabrication' => $hauteurFabrication,
                                 ];
@@ -1022,7 +1182,7 @@ class ConfigurationController extends AbstractController
                                 $customValue = $largeurTableau;
                                 $calculatedValue = $hauteurTableau; // Stocker la hauteur dans calculatedValue
                                 
-                                $successMessage = 'PDF généré avec succès - Largeur Tableaux: ' . number_format($largeurTableau, 0) . ' mm, Hauteur: ' . number_format($hauteurTableau, 0) . ' mm, Doublage Largeur: ' . number_format($doublageLargeur, 0) . ' mm, Doublage Hauteur: ' . number_format($doublageHauteur, 0) . ' mm, Largeur Fabrication: ' . number_format($largeurFabrication, 0) . ' mm, Hauteur Fabrication: ' . number_format($hauteurFabrication, 0) . ' mm';
+                                $successMessage = 'PDF généré avec succès - Largeur Tableaux: ' . number_format($largeurTableau, 0) . ' mm, Hauteur: ' . number_format($hauteurTableau, 0) . ' mm, Tapées Largeur: ' . number_format($tapeesLargeur, 0) . ' mm, Tapées Hauteur: ' . number_format($tapeesHauteur, 0) . ' mm, Largeur Fabrication: ' . number_format($largeurFabrication, 0) . ' mm, Hauteur Fabrication: ' . number_format($hauteurFabrication, 0) . ' mm';
                             } elseif ($pdfSchema->getNom() === 'Pose en rénovation') {
                                 // Pour pose en rénovation : récupérer largeur et hauteur dormant bois + particularité
                                 $largeurDormantBois = (float) $request->request->get('largeur_dormant_bois');
@@ -1084,8 +1244,8 @@ class ConfigurationController extends AbstractController
                                 $additionalValues = [
                                     'largeur_tableau' => $largeurTableau,
                                     'hauteur_tableau' => $hauteurTableau,
-                                    'doublage_largeur' => $doublageLargeur,
-                                    'doublage_hauteur' => $doublageHauteur,
+                                    'tapees_largeur' => $tapeesLargeur,
+                                    'tapees_hauteur' => $tapeesHauteur,
                                     'largeur_fabrication' => $largeurFabrication,
                                     'hauteur_fabrication' => $hauteurFabrication
                                 ];
@@ -1098,6 +1258,11 @@ class ConfigurationController extends AbstractController
                                     'hauteur_fabrication' => $hauteurFabrication,
                                 ];
                             }
+                            
+                            // Sauvegarder le type de pose dans la configuration
+                            $confPf->setPoseType($pdfSchema->getNom());
+                            $this->entityManager->persist($confPf);
+                            $this->entityManager->flush();
                             
                             // Générer le PDF avec le schéma sélectionné
                             $pdfPath = $pdfGenerator->generatePlanPdf($confPf, $customValue, $calculatedValue, $pdfSchema, $additionalValues);

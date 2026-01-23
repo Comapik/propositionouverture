@@ -126,7 +126,7 @@ class PdfGeneratorService
             // Pour pose tunnelle : ajouter les 4 valeurs spécifiques
             $this->addPoseTunnelleValues($pdf, $additionalValues ?: []);
         } elseif ($pdfSchema->getNom() === 'Pose applique avec tapées isolation') {
-            // Pour pose applique avec tapées isolation : ajouter largeur et doublage
+            // Pour pose applique avec tapées isolation : ajouter largeur et tapées
             $this->addPoseAppliqueTapeesValues($pdf, $additionalValues ?: []);
         } elseif ($pdfSchema->getNom() === 'Pose en rénovation') {
             // Pour pose en rénovation : ajouter les dimensions dormant bois
@@ -359,7 +359,7 @@ class PdfGeneratorService
             $pdf->StopTransform();
         }
 
-        // Note: Les valeurs de doublage sont affichées dans la section "Informations de configuration"
+        // Note: Les valeurs de tapées sont affichées dans la section "Informations de configuration"
     }
 
     /**
@@ -463,13 +463,13 @@ class PdfGeneratorService
             'Valeur spécifique: ' . number_format($customValue, 0) . ' mm',
         ];
         
-        // Ajouter les valeurs de doublage si c'est une pose applique avec tapées isolation
-        if ($pdfSchema && $pdfSchema->getNom() === 'Pose applique avec tapées isolation' && $additionalValues) {
-            if (isset($additionalValues['doublage_largeur'])) {
-                $infos[] = 'Doublage Largeur: ' . number_format($additionalValues['doublage_largeur'], 0) . ' mm';
+        // Ajouter les valeurs de tapées si c'est une pose applique avec tapées isolation
+        if ($pdfSchema->getNom() === 'Pose applique avec tapées isolation') {
+            if (isset($additionalValues['tapees_largeur'])) {
+                $infos[] = 'Tapées Largeur: ' . number_format($additionalValues['tapees_largeur'], 0) . ' mm';
             }
-            if (isset($additionalValues['doublage_hauteur'])) {
-                $infos[] = 'Doublage Hauteur: ' . number_format($additionalValues['doublage_hauteur'], 0) . ' mm';
+            if (isset($additionalValues['tapees_hauteur'])) {
+                $infos[] = 'Tapées Hauteur: ' . number_format($additionalValues['tapees_hauteur'], 0) . ' mm';
             }
         }
         

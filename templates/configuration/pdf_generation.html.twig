@@ -65,8 +65,7 @@
                                                            name="pdf_schema_id" 
                                                            id="schema_{{ schema.id }}" 
                                                            value="{{ schema.id }}"
-                                                           {% if selectedSchemaId == schema.id or (not selectedSchemaId and loop.first) %}checked{% endif %}
-                                                           required>
+                                                           {% if selectedSchemaId == schema.id or (not selectedSchemaId and loop.first) %}checked{% endif %}>
                                                     <label class="btn btn-outline-secondary d-flex flex-column align-items-center p-3 h-100" for="schema_{{ schema.id }}">
                                                         {% if schema.previewImage %}
                                                         <img src="{{ schema.previewImage }}" 
@@ -339,14 +338,14 @@
                                         
                                         <div class="row mt-3">
                                             <div class="col-md-6">
-                                                <label for="doublage_largeur" class="form-label">
-                                                    <strong>Doublage Largeur</strong>
+                                                <label for="tapees_largeur" class="form-label">
+                                                    <strong>Tapées Largeur</strong>
                                                     <span class="text-danger">*</span>
                                                 </label>
                                                 <div class="input-group">
                                                     <select class="form-select" 
-                                                            id="doublage_largeur" 
-                                                            name="doublage_largeur" 
+                                                            id="tapees_largeur" 
+                                                            name="tapees_largeur" 
                                                             required>
                                                         <option value="">Sélectionner...</option>
                                                         <option value="100">100 mm</option>
@@ -356,18 +355,18 @@
                                                     </select>
                                                 </div>
                                                 <div class="invalid-feedback">
-                                                    Veuillez sélectionner une valeur de doublage largeur.
+                                                    Veuillez sélectionner une valeur de tapées largeur.
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="doublage_hauteur" class="form-label">
-                                                    <strong>Doublage Hauteur</strong>
+                                                <label for="tapees_hauteur" class="form-label">
+                                                    <strong>Tapées Hauteur</strong>
                                                     <span class="text-danger">*</span>
                                                 </label>
                                                 <div class="input-group">
                                                     <select class="form-select" 
-                                                            id="doublage_hauteur" 
-                                                            name="doublage_hauteur" 
+                                                            id="tapees_hauteur" 
+                                                            name="tapees_hauteur" 
                                                             required>
                                                         <option value="">Sélectionner...</option>
                                                         <option value="100">100 mm</option>
@@ -377,7 +376,7 @@
                                                     </select>
                                                 </div>
                                                 <div class="invalid-feedback">
-                                                    Veuillez sélectionner une valeur de doublage hauteur.
+                                                    Veuillez sélectionner une valeur de tapées hauteur.
                                                 </div>
                                             </div>
                                         </div>
@@ -417,7 +416,7 @@
                                         </div>
                                         
                                         <div class="form-text mt-2">
-                                            Ces dimensions correspondent aux tableaux finis et aux doublages (largeur et hauteur) pour la pose applique avec tapées isolation.
+                                            Ces dimensions correspondent aux tableaux finis et aux tapées (largeur et hauteur) pour la pose applique avec tapées isolation.
                                         </div>
                                     </div>
                                     
@@ -747,8 +746,8 @@
                 var hauteurTableauTunnelle = document.getElementById('hauteur_tableau_tunnelle');
                 var largeurTableauTapees = document.getElementById('largeur_tableau_tapees');
                 var hauteurTableauTapees = document.getElementById('hauteur_tableau_tapees');
-                var doublageLargeur = document.getElementById('doublage_largeur');
-                var doublageHauteur = document.getElementById('doublage_hauteur');
+                var tapeesLargeur = document.getElementById('tapees_largeur');
+                var tapeesHauteur = document.getElementById('tapees_hauteur');
                 var largeurDormantBois = document.getElementById('largeur_dormant_bois');
                 var hauteurDormantBois = document.getElementById('hauteur_dormant_bois');
                 var particulariteCompensateur = document.getElementById('particularite_compensateur');
@@ -953,8 +952,8 @@
                             hauteurTableauTunnelle.required = false;
                             largeurTableauTapees.required = false;
                             hauteurTableauTapees.required = false;
-                            doublageLargeur.required = false;
-                            doublageHauteur.required = false;
+                            tapeesLargeur.required = false;
+                            tapeesHauteur.required = false;
                             largeurDormantBois.required = false;
                             hauteurDormantBois.required = false;
                             customValueInput.required = false;
@@ -978,8 +977,8 @@
                             hauteurTableauTunnelle.required = true;
                             largeurTableauTapees.required = false;
                             hauteurTableauTapees.required = false;
-                            doublageLargeur.required = false;
-                            doublageHauteur.required = false;
+                            tapeesLargeur.required = false;
+                            tapeesHauteur.required = false;
                             largeurDormantBois.required = false;
                             hauteurDormantBois.required = false;
                             customValueInput.required = false;
@@ -1002,8 +1001,8 @@
                             hauteurTableauTunnelle.required = false;
                             largeurTableauTapees.required = true;
                             hauteurTableauTapees.required = true;
-                            doublageLargeur.required = true;
-                            doublageHauteur.required = true;
+                            tapeesLargeur.required = true;
+                            tapeesHauteur.required = true;
                             largeurDormantBois.required = false;
                             hauteurDormantBois.required = false;
                             customValueInput.required = false;
@@ -1027,8 +1026,8 @@
                             hauteurTableauTunnelle.required = false;
                             largeurTableauTapees.required = false;
                             hauteurTableauTapees.required = false;
-                            doublageLargeur.required = false;
-                            doublageHauteur.required = false;
+                            tapeesLargeur.required = false;
+                            tapeesHauteur.required = false;
                             largeurDormantBois.required = true;
                             hauteurDormantBois.required = true;
                             customValueInput.required = false;
@@ -1056,8 +1055,8 @@
                             hauteurTableauTunnelle.required = false;
                             largeurTableauTapees.required = false;
                             hauteurTableauTapees.required = false;
-                            doublageLargeur.required = false;
-                            doublageHauteur.required = false;
+                            tapeesLargeur.required = false;
+                            tapeesHauteur.required = false;
                             largeurDormantBois.required = false;
                             hauteurDormantBois.required = false;
                             customValueInput.required = true;
@@ -1280,15 +1279,8 @@
                     updateCalculatedValue();
                 }
                 
-                var validation = Array.prototype.filter.call(forms, function(form) {
-                    form.addEventListener('submit', function(event) {
-                        if (form.checkValidity() === false) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        form.classList.add('was-validated');
-                    }, false);
-                });
+                // Validation désactivée - le formulaire est facultatif
+                // Les utilisateurs peuvent générer un PDF ou non selon leurs besoins
             }, false);
         })();
         

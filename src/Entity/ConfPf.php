@@ -53,6 +53,9 @@ class ConfPf
     #[ORM\ManyToOne(inversedBy: 'confPfs')]
     private ?TypeFenetrePorte $typeFenetrePorte = null;
 
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?string $sensOuverture = null;
+
     #[ORM\ManyToOne(inversedBy: 'confPfsInterieur')]
     private ?Couleur $couleurInterieur = null;
 
@@ -80,6 +83,10 @@ class ConfPf
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100, maxMessage: 'Le type de pose ne peut pas dépasser {{ limit }} caractères')]
+    private ?string $poseType = null;
 
     public function __construct()
     {
@@ -256,6 +263,17 @@ class ConfPf
         return $this;
     }
 
+    public function getSensOuverture(): ?string
+    {
+        return $this->sensOuverture;
+    }
+
+    public function setSensOuverture(?string $sensOuverture): static
+    {
+        $this->sensOuverture = $sensOuverture;
+        return $this;
+    }
+
     public function getCouleurInterieur(): ?Couleur
     {
         return $this->couleurInterieur;
@@ -275,6 +293,17 @@ class ConfPf
     public function setCouleurExterieur(?Couleur $couleurExterieur): static
     {
         $this->couleurExterieur = $couleurExterieur;
+        return $this;
+    }
+
+    public function getPoseType(): ?string
+    {
+        return $this->poseType;
+    }
+
+    public function setPoseType(?string $poseType): static
+    {
+        $this->poseType = $poseType;
         return $this;
     }
 }

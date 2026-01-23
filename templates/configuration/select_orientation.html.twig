@@ -1,0 +1,143 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Choisir le sens d'ouverture - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-arrow-left-right me-2"></i>
+                        Sens d'ouverture
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <nav aria-label="breadcrumb" class="mb-4">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ path('app_projet_show', {id: projet.id}) }}">{{ projet.refClient }}</a>
+                            </li>
+                            <li class="breadcrumb-item"><span class="badge bg-success">{{ produit.nom }}</span></li>
+                            <li class="breadcrumb-item"><span class="badge bg-success">{{ categorie.nom }}</span></li>
+                            <li class="breadcrumb-item"><span class="badge bg-success">{{ sousCategorie.nom }}</span></li>
+                            <li class="breadcrumb-item active" aria-current="page">
+                                <i class="bi bi-arrow-left-right me-1"></i>Sens d'ouverture
+                            </li>
+                        </ol>
+                    </nav>
+
+                    <div class="alert alert-info mb-4">
+                        <strong>Configuration actuelle :</strong><br>
+                        <i class="bi bi-box me-1"></i> Produit : {{ produit.nom }}<br>
+                        <i class="bi bi-tag me-1"></i> Catégorie : {{ categorie.nom }}<br>
+                        <i class="bi bi-tags me-1"></i> Sous-catégorie : {{ sousCategorie.nom }}
+                    </div>
+
+                    {% if orientationOptions is empty %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Aucun sens d'ouverture spécifique n'est requis pour cette configuration.
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('app_configuration_pf_subcategory', {projet: projet.id, confpf: confpf.id}) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Retour aux sous-catégories
+                            </a>
+                            <a href="{{ path('app_configuration_pf_ouverture', {projet: projet.id, confpf: confpf.id}) }}" class="btn btn-primary">
+                                Continuer <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="mb-4">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Choisissez le sens d'ouverture pour vos portes :
+                        </p>
+
+                        <form method="post">
+                            <div class="row g-3">
+                                {% for option in orientationOptions %}
+                                    <div class="col-lg-6 col-md-6">
+                                        <div class="card border orientation-card {{ confpf.sensOuverture == option ? 'selected' : '' }}" data-orientation="{{ option }}">
+                                            <div class="card-body text-center p-4">
+                                                <img src="https://epam.okno-pol.pl/Content/Img/Wizard/Kategorie%20szabl/Okna/icon_Drzwi_1.jpg" class="card-img-top subcategory-image">
+                                                <h5 class="card-title mb-2">{{ labels[option] ?? option }}</h5>
+                                                
+                                                <input type="radio"
+                                                       name="sens_ouverture"
+                                                       value="{{ option }}"
+                                                       class="d-none orientation-radio"
+                                                       {% if confpf.sensOuverture == option %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="row mt-4">
+                                <div class="col-12 d-flex justify-content-between">
+                                    <a href="{{ path('app_configuration_pf_subcategory', {projet: projet.id, confpf: confpf.id}) }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-arrow-left me-1"></i>Retour aux sous-catégories
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" id="orientation-submit" {% if not confpf.sensOuverture %}disabled{% endif %}>
+                                        Continuer <i class="bi bi-arrow-right ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.orientation-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border-radius: 12px;
+    height: 100%;
+}
+
+.orientation-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    border-color: #0d6efd !important;
+}
+
+.orientation-card.selected {
+    border-width: 3px;
+    border-color: #0d6efd !important;
+    box-shadow: 0 12px 30px rgba(13, 110, 253, 0.35);
+}
+
+.icon-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.orientation-card');
+    const submitBtn = document.getElementById('orientation-submit');
+
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            cards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            const radio = card.querySelector('.orientation-radio');
+            if (radio) {
+                radio.checked = true;
+                submitBtn?.removeAttribute('disabled');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
