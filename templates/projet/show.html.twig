@@ -336,7 +336,30 @@
                                                 <span class="badge bg-primary text-white fs-6">{{ confPf.typeFenetrePorte.nom }}</span>
                                             </div>
                                         </div>
-                                    {% endif %}                                                    {% if confPf.notes %}
+                                    {% endif %}
+
+                                    {% if confPf.vitrage %}
+                                        <div class="mb-2">
+                                            <strong class="text-dark">Vitrage :</strong>
+                                            <span class="badge bg-success text-white">
+                                                {{ confPf.vitrage.type }}
+                                                {% if confPf.vitrage.rw %} - Rw:{{ confPf.vitrage.rw }}{% endif %}
+                                                {% if confPf.vitrage.epaisseur %} - Ép:{{ confPf.vitrage.epaisseur }}{% endif %}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if confPf.confAeration %}
+                                        <div class="mb-2">
+                                            <strong class="text-dark">Aérateur :</strong>
+                                            <span class="badge bg-info text-white">
+                                                {{ confPf.confAeration.aeration.modele }}
+                                                - Position: {{ confPf.confAeration.position.position }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+
+                                                    {% if confPf.notes %}
                                                         <div class="mb-2">
                                                             <strong class="text-muted">Notes :</strong>
                                                             <div class="small text-muted">{{ confPf.notes|slice(0, 100) }}{% if confPf.notes|length > 100 %}...{% endif %}</div>

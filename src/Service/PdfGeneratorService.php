@@ -458,9 +458,11 @@ class PdfGeneratorService
             'Catégorie: ' . ($confPf->getCategorie() ? $confPf->getCategorie()->getNom() : 'Non définie'),
             'Sous-catégorie: ' . ($confPf->getSousCategorie() ? $confPf->getSousCategorie()->getNom() : 'Non définie'),
             'Ouverture: ' . ($confPf->getOuverture() ? $confPf->getOuverture()->getNom() : 'Non définie'),
-            'Dimensions: ' . ($confPf->getLargeur() ? $confPf->getLargeur() . ' x ' . $confPf->getHauteur() . ' mm' : 'Non définies'),
+            'Fournisseur: ' . ($confPf->getFournisseur() ? $confPf->getFournisseur()->getMarque() : 'Non défini'),
+            'Système: ' . ($confPf->getSysteme() ? $confPf->getSysteme()->getNom() : 'Non défini'),
+            'Type fenêtre/porte: ' . ($confPf->getTypeFenetrePorte() ? $confPf->getTypeFenetrePorte()->getNom() : 'Non défini'),
+            'Vitrage: ' . ($confPf->getVitrage() ? $confPf->getVitrage()->getType() . ($confPf->getVitrage()->getRw() ? ' - RW: ' . $confPf->getVitrage()->getRw() : '') . ($confPf->getVitrage()->getEpaisseur() ? ' - Épaisseur: ' . $confPf->getVitrage()->getEpaisseur() : '') : 'Non défini'),
             'Quantité: ' . ($confPf->getQuantite() ?: 'Non définie'),
-            'Valeur spécifique: ' . number_format($customValue, 0) . ' mm',
         ];
         
         // Ajouter les valeurs de tapées si c'est une pose applique avec tapées isolation
@@ -486,6 +488,30 @@ class PdfGeneratorService
             $pdf->SetXY($marginLeft, $y);
             $pdf->Cell(0, $lineHeight, $info, 0, 1, 'L');
             $y += $lineHeight;
+        }
+        
+        // Ajouter le cadre "Dimensions commande" si les dimensions de fabrication sont disponibles
+        if ($additionalValues && isset($additionalValues['largeur_fabrication']) && isset($additionalValues['hauteur_fabrication'])) {
+            $y += 2; // Espacement
+            
+            // Dessiner un cadre
+            $pdf->SetDrawColor(0, 0, 0); // Noir
+            $pdf->SetFillColor(255, 255, 220); // Jaune clair
+            $boxWidth = 70;
+            $boxHeight = 14;
+            $pdf->Rect($marginLeft, $y, $boxWidth, $boxHeight, 'DF');
+            
+            // Titre du cadre
+            $pdf->SetXY($marginLeft + 2, $y + 1);
+            $pdf->SetFont('helvetica', 'B', 8);
+            $pdf->Cell(0, 4, 'Dimensions commande', 0, 1, 'L');
+            
+            // Dimensions
+            $pdf->SetFont('helvetica', '', 7);
+            $pdf->SetXY($marginLeft + 2, $y + 5);
+            $pdf->Cell(0, 4, 'Largeur: ' . number_format($additionalValues['largeur_fabrication'], 0) . ' mm', 0, 1, 'L');
+            $pdf->SetXY($marginLeft + 2, $y + 9);
+            $pdf->Cell(0, 4, 'Hauteur: ' . number_format($additionalValues['hauteur_fabrication'], 0) . ' mm', 0, 1, 'L');
         }
     }
 }
