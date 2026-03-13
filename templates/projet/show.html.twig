@@ -349,7 +349,7 @@
                                         </div>
                                     {% endif %}
 
-                                    {% if confPf.confAeration %}
+                                    {% if confPf.confAeration is defined and confPf.confAeration %}
                                         <div class="mb-2">
                                             <strong class="text-dark">Aérateur :</strong>
                                             <span class="badge bg-info text-white">
