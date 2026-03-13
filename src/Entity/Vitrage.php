@@ -9,13 +9,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * Vitrage entity representing different types of glazing options.
- * 
- * Follows SOLID principles:
- * - Single Responsibility: Represents glazing data
- * - Open/Closed: Can be extended without modification
- */
 #[ORM\Entity(repositoryClass: VitrageRepository::class)]
 #[ORM\Table(name: 'vitrage')]
 class Vitrage
@@ -55,6 +48,7 @@ class Vitrage
     public function setType(string $type): static
     {
         $this->type = $type;
+
         return $this;
     }
 
@@ -66,6 +60,7 @@ class Vitrage
     public function setRw(?string $rw): static
     {
         $this->rw = $rw;
+
         return $this;
     }
 
@@ -77,6 +72,7 @@ class Vitrage
     public function setEpaisseur(?string $epaisseur): static
     {
         $this->epaisseur = $epaisseur;
+
         return $this;
     }
 
@@ -94,6 +90,7 @@ class Vitrage
             $this->confPfs->add($confPf);
             $confPf->setVitrage($this);
         }
+
         return $this;
     }
 
@@ -104,6 +101,7 @@ class Vitrage
                 $confPf->setVitrage(null);
             }
         }
+
         return $this;
     }
 

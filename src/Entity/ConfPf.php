@@ -53,6 +53,9 @@ class ConfPf
     #[ORM\ManyToOne(inversedBy: 'confPfs')]
     private ?TypeFenetrePorte $typeFenetrePorte = null;
 
+    #[ORM\ManyToOne(inversedBy: 'confPfs')]
+    private ?Vitrage $vitrage = null;
+
     #[ORM\Column(length: 10, nullable: true)]
     private ?string $sensOuverture = null;
 
@@ -266,6 +269,17 @@ class ConfPf
     public function setTypeFenetrePorte(?TypeFenetrePorte $typeFenetrePorte): static
     {
         $this->typeFenetrePorte = $typeFenetrePorte;
+        return $this;
+    }
+
+    public function getVitrage(): ?Vitrage
+    {
+        return $this->vitrage;
+    }
+
+    public function setVitrage(?Vitrage $vitrage): static
+    {
+        $this->vitrage = $vitrage;
         return $this;
     }
 

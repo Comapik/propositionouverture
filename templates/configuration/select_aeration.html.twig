@@ -156,7 +156,7 @@
                                 {% for aeration in aerations %}
                                     <li class="mb-3">
                                         <label class="form-check-label cursor-pointer d-flex align-items-center p-3 border rounded aeration-option" for="aeration_{{ aeration.id }}">
-                                            <input class="form-check-input me-3" type="radio" name="aeration" value="{{ aeration.id }}" id="aeration_{{ aeration.id }}" {% if confpf.confAeration and confpf.confAeration.aeration.id == aeration.id and confpf.confAeration.position.id == selectedPosition.id %}checked{% endif %}>
+                                            <input class="form-check-input me-3" type="radio" name="aeration" value="{{ aeration.id }}" id="aeration_{{ aeration.id }}" {% if confpf.confAeration is defined and confpf.confAeration and confpf.confAeration.aeration.id == aeration.id and confpf.confAeration.position.id == selectedPosition.id %}checked{% endif %}>
                                             <div class="flex-grow-1">
                                                 <strong>{{ aeration.modele }}</strong>
                                             </div>

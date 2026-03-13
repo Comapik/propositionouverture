@@ -9,8 +9,6 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Repository for Vitrage entity.
- * 
  * @extends ServiceEntityRepository<Vitrage>
  */
 class VitrageRepository extends ServiceEntityRepository
@@ -21,7 +19,7 @@ class VitrageRepository extends ServiceEntityRepository
     }
 
     /**
-     * Find all vitrages ordered by type
+     * @return Vitrage[]
      */
     public function findAllOrdered(): array
     {
