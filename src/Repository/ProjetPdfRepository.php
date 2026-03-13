@@ -64,7 +64,7 @@ class ProjetPdfRepository extends ServiceEntityRepository
      */
     public function countByProjet(Projet $projet): int
     {
-        return $this->createQueryBuilder('pp')
+        return (int) $this->createQueryBuilder('pp')
             ->select('COUNT(pp.id)')
             ->where('pp.projet = :projet')
             ->setParameter('projet', $projet)

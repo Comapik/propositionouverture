@@ -114,7 +114,7 @@ class TypeFenetrePorteCompatibiliteRepository extends ServiceEntityRepository
      */
     public function isCompatible(int $typeFenetrePorteId, int $ouvertureId, int $systemeId): bool
     {
-        $result = $this->createQueryBuilder('c')
+        $result = (int) $this->createQueryBuilder('c')
             ->select('COUNT(c.id)')
             ->andWhere('c.typeFenetrePorte = :typeFenetrePorte')
             ->andWhere('c.ouverture = :ouverture')
