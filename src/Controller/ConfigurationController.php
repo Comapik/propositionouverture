@@ -9,6 +9,8 @@ use App\Entity\Produit;
 use App\Entity\ConfPf;
 use App\Entity\Fournisseur;
 use App\Entity\TypeFenetrePorte;
+use App\Entity\Aeration;
+use App\Entity\Position;
 use App\Form\ProductSelectionType;
 use App\Form\ConfPfDetailsType;
 use App\Service\TypeFenetrePorteCompatibiliteService;
@@ -242,14 +244,6 @@ class ConfigurationController extends AbstractController
                     $this->entityManager->flush();
                     
                     $this->addFlash('success', 'Sous-catégorie sélectionnée : ' . $sousCategorie->getNom());
-                    
-                    // Vérifier si on est dans le contexte des portes avec orientation
-                    if ($this->isDoorWithOrientationContext($confPf)) {
-                        return $this->redirectToRoute('app_configuration_pf_orientation', [
-                            'projet' => $projet->getId(),
-                            'confpf' => $confPf->getId(),
-                        ]);
-                    }
                     
                     // Redirect to opening selection
                     return $this->redirectToRoute('app_configuration_pf_ouverture', [
@@ -581,8 +575,8 @@ class ConfigurationController extends AbstractController
             
             $this->addFlash('success', $message);
             
-            // Rediriger vers la génération PDF (dernière étape)
-            return $this->redirectToRoute('app_configuration_pf_pdf', [
+            // Rediriger vers l'étape vitrage
+            return $this->redirectToRoute('app_configuration_pf_vitrage', [
                 'projet' => $projet->getId(),
                 'confpf' => $confPf->getId()
             ]);
@@ -596,6 +590,271 @@ class ConfigurationController extends AbstractController
             'sousCategorie' => $confPf->getSousCategorie(),
             'systeme' => $confPf->getSysteme(),
             'form' => $form,
+        ]);
+    }
+
+    #[Route('/pf/{projet}/vitrage/{confpf}', name: 'app_configuration_pf_vitrage', methods: ['GET', 'POST'])]
+    public function configurePfVitrage(
+        #[MapEntity(mapping: ['projet' => 'id'])] Projet $projet,
+        #[MapEntity(mapping: ['confpf' => 'id'])] ConfPf $confPf,
+        Request $request
+    ): Response {
+        // Vérifier que l'étape des couleurs est complète
+        if (!$confPf->getProduit() || !$confPf->getCategorie() || !$confPf->getSousCategorie() || !$confPf->getSysteme()) {
+            $this->addFlash('error', 'Configuration incomplète. Veuillez d\'abord compléter les étapes précédentes.');
+            return $this->redirectToRoute('app_configuration_pf_details', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        // Récupérer tous les vitrages disponibles
+        $vitrages = $this->entityManager->getRepository(\App\Entity\Vitrage::class)->findAllOrdered();
+
+        if ($request->isMethod('POST')) {
+            $vitrageId = $request->request->get('vitrage');
+            if ($vitrageId) {
+                $vitrage = $this->entityManager->getRepository(\App\Entity\Vitrage::class)->find((int)$vitrageId);
+                if ($vitrage) {
+                    $confPf->setVitrage($vitrage);
+                    $this->entityManager->flush();
+
+                    $this->addFlash('success', 'Vitrage choisi : ' . $vitrage->getType());
+                    
+                    // Rediriger vers l'étape aération
+                    return $this->redirectToRoute('app_configuration_pf_aeration', [
+                        'projet' => $projet->getId(),
+                        'confpf' => $confPf->getId()
+                    ]);
+                }
+            }
+
+            $this->addFlash('warning', 'Veuillez choisir un type de vitrage.');
+        }
+
+        return $this->render('configuration/select_vitrage.html.twig', [
+            'projet' => $projet,
+            'confpf' => $confPf,
+            'produit' => $confPf->getProduit(),
+            'categorie' => $confPf->getCategorie(),
+            'sousCategorie' => $confPf->getSousCategorie(),
+            'vitrages' => $vitrages,
+        ]);
+    }
+
+    #[Route('/pf/{projet}/aeration-position/{confpf}', name: 'app_configuration_pf_aeration_position', methods: ['GET', 'POST'])]
+    public function configurePfAerationPosition(
+        #[MapEntity(mapping: ['projet' => 'id'])] Projet $projet,
+        #[MapEntity(mapping: ['confpf' => 'id'])] ConfPf $confPf,
+        Request $request
+    ): Response {
+        // Vérifier que les étapes précédentes sont complètes
+        if (!$confPf->getProduit() || !$confPf->getCategorie() || !$confPf->getSousCategorie() || !$confPf->getSysteme() || !$confPf->getVitrage()) {
+            $this->addFlash('error', 'Configuration incomplète. Veuillez d\'abord compléter les étapes précédentes.');
+            return $this->redirectToRoute('app_configuration_pf_details', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        // Récupérer toutes les positions disponibles
+        $positions = $this->entityManager->getRepository(\App\Entity\Position::class)->findAll();
+
+        if ($request->isMethod('POST')) {
+            $positionId = $request->request->get('position');
+            if ($positionId) {
+                // Rediriger vers l'étape de choix du modèle
+                return $this->redirectToRoute('app_configuration_pf_aeration_modele', [
+                    'projet' => $projet->getId(),
+                    'confpf' => $confPf->getId(),
+                    'position' => $positionId
+                ]);
+            }
+
+            $this->addFlash('warning', 'Veuillez choisir une position.');
+        }
+
+        return $this->render('configuration/select_aeration_position.html.twig', [
+            'projet' => $projet,
+            'confpf' => $confPf,
+            'produit' => $confPf->getProduit(),
+            'categorie' => $confPf->getCategorie(),
+            'sousCategorie' => $confPf->getSousCategorie(),
+            'positions' => $positions,
+        ]);
+    }
+
+    #[Route('/pf/{projet}/aeration-modele/{confpf}', name: 'app_configuration_pf_aeration_modele', methods: ['GET', 'POST'])]
+    public function configurePfAerationModele(
+        #[MapEntity(mapping: ['projet' => 'id'])] Projet $projet,
+        #[MapEntity(mapping: ['confpf' => 'id'])] ConfPf $confPf,
+        Request $request
+    ): Response {
+        // Vérifier que les étapes précédentes sont complètes
+        if (!$confPf->getProduit() || !$confPf->getCategorie() || !$confPf->getSousCategorie() || !$confPf->getSysteme() || !$confPf->getVitrage()) {
+            $this->addFlash('error', 'Configuration incomplète. Veuillez d\'abord compléter les étapes précédentes.');
+            return $this->redirectToRoute('app_configuration_pf_details', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        // Récupérer la position sélectionnée depuis la query string
+        $positionId = $request->query->get('position');
+        if (!$positionId) {
+            // Si pas de position en query string, rediriger vers le choix de position
+            return $this->redirectToRoute('app_configuration_pf_aeration_position', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        $position = $this->entityManager->getRepository(\App\Entity\Position::class)->find((int)$positionId);
+        if (!$position) {
+            $this->addFlash('error', 'Position invalide.');
+            return $this->redirectToRoute('app_configuration_pf_aeration_position', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        // Récupérer les aérateurs disponibles (tous, pas filtrés par position)
+        $aerations = $this->entityManager->getRepository(Aeration::class)->findAll();
+
+        if ($request->isMethod('POST')) {
+            $aerationId = $request->request->get('aeration');
+            if ($aerationId) {
+                $aeration = $this->entityManager->getRepository(Aeration::class)->find((int)$aerationId);
+                if ($aeration) {
+                    // Chercher ou créer la combinaison aeration + position
+                    $confAeration = $this->entityManager->getRepository(\App\Entity\ConfAeration::class)
+                        ->findByAerationAndPosition($aeration, $position);
+                    
+                    if (!$confAeration) {
+                        // Créer la nouvelle combinaison
+                        $confAeration = new \App\Entity\ConfAeration();
+                        $confAeration->setAeration($aeration);
+                        $confAeration->setPosition($position);
+                        $this->entityManager->persist($confAeration);
+                    }
+                    
+                    $confPf->setConfAeration($confAeration);
+                    $this->entityManager->flush();
+
+                    $this->addFlash('success', 'Aérateur choisi : ' . $aeration->getModele() . ' (Position: ' . $position->getPosition() . ')');
+                    
+                    // Rediriger vers la génération PDF (dernière étape)
+                    return $this->redirectToRoute('app_configuration_pf_pdf', [
+                        'projet' => $projet->getId(),
+                        'confpf' => $confPf->getId()
+                    ]);
+                }
+            }
+
+            $this->addFlash('warning', 'Veuillez choisir un modèle d\'aérateur.');
+        }
+
+        return $this->render('configuration/select_aeration_modele.html.twig', [
+            'projet' => $projet,
+            'confpf' => $confPf,
+            'produit' => $confPf->getProduit(),
+            'categorie' => $confPf->getCategorie(),
+            'sousCategorie' => $confPf->getSousCategorie(),
+            'position' => $position,
+            'aerations' => $aerations,
+        ]);
+    }
+
+    #[Route('/pf/{projet}/aeration/{confpf}', name: 'app_configuration_pf_aeration', methods: ['GET', 'POST'])]
+    public function configurePfAeration(
+        #[MapEntity(mapping: ['projet' => 'id'])] Projet $projet,
+        #[MapEntity(mapping: ['confpf' => 'id'])] ConfPf $confPf,
+        Request $request
+    ): Response {
+        // Vérifier que les étapes précédentes sont complètes
+        if (!$confPf->getProduit() || !$confPf->getCategorie() || !$confPf->getSousCategorie() || !$confPf->getSysteme() || !$confPf->getVitrage()) {
+            $this->addFlash('error', 'Configuration incomplète. Veuillez d\'abord compléter les étapes précédentes.');
+            return $this->redirectToRoute('app_configuration_pf_details', [
+                'projet' => $projet->getId(),
+                'confpf' => $confPf->getId(),
+            ]);
+        }
+
+        // Récupérer toutes les positions disponibles
+        $positions = $this->entityManager->getRepository(Position::class)->findAll();
+
+        // Récupérer la position sélectionnée depuis la session ou la requête
+        $selectedPositionId = $request->request->get('position') ?? $request->query->get('position');
+        $selectedPosition = null;
+        $aerations = [];
+
+        if ($selectedPositionId) {
+            $selectedPosition = $this->entityManager->getRepository(Position::class)->find((int)$selectedPositionId);
+            if ($selectedPosition) {
+                // Récupérer tous les aérateurs disponibles
+                $aerations = $this->entityManager->getRepository(Aeration::class)->findAll();
+            }
+        }
+
+        if ($request->isMethod('POST')) {
+            $positionId = $request->request->get('position');
+            $aerationId = $request->request->get('aeration');
+
+            // Validation : position est obligatoire
+            if (!$positionId) {
+                $this->addFlash('warning', 'Veuillez choisir une position.');
+            }
+            // Si position est choisie mais pas de modèle, on redemande
+            elseif (!$aerationId) {
+                $this->addFlash('warning', 'Veuillez choisir un modèle d\'aérateur.');
+                // Rediriger vers la même page avec la position sélectionnée en query string
+                return $this->redirectToRoute('app_configuration_pf_aeration', [
+                    'projet' => $projet->getId(),
+                    'confpf' => $confPf->getId(),
+                    'position' => $positionId
+                ]);
+            }
+            // Tout est sélectionné, on sauvegarde
+            else {
+                $position = $this->entityManager->getRepository(Position::class)->find((int)$positionId);
+                $aeration = $this->entityManager->getRepository(Aeration::class)->find((int)$aerationId);
+                
+                if ($aeration && $position) {
+                    // Chercher ou créer la combinaison aeration + position
+                    $confAeration = $this->entityManager->getRepository(\App\Entity\ConfAeration::class)
+                        ->findByAerationAndPosition($aeration, $position);
+                    
+                    if (!$confAeration) {
+                        // Créer la nouvelle combinaison
+                        $confAeration = new \App\Entity\ConfAeration();
+                        $confAeration->setAeration($aeration);
+                        $confAeration->setPosition($position);
+                        $this->entityManager->persist($confAeration);
+                    }
+                    
+                    $confPf->setConfAeration($confAeration);
+                    $this->entityManager->flush();
+
+                    $this->addFlash('success', 'Aérateur choisi : ' . $aeration->getModele() . ' (Position: ' . $position->getPosition() . ')');
+                    
+                    // Rediriger vers la génération PDF (dernière étape)
+                    return $this->redirectToRoute('app_configuration_pf_pdf', [
+                        'projet' => $projet->getId(),
+                        'confpf' => $confPf->getId()
+                    ]);
+                }
+            }
+        }
+
+        return $this->render('configuration/select_aeration.html.twig', [
+            'projet' => $projet,
+            'confpf' => $confPf,
+            'produit' => $confPf->getProduit(),
+            'categorie' => $confPf->getCategorie(),
+            'sousCategorie' => $confPf->getSousCategorie(),
+            'positions' => $positions,
+            'selectedPosition' => $selectedPosition,
+            'aerations' => $aerations,
         ]);
     }
 

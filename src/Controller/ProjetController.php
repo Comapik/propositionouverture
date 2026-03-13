@@ -217,6 +217,13 @@ final class ProjetController extends AbstractController
                         if ($confPf->getOuverture()) {
                             $confPf->getOuverture()->getNom(); // Force le chargement
                         }
+                        if ($confPf->getVitrage()) {
+                            $confPf->getVitrage()->getType(); // Force le chargement
+                        }
+                        if ($confPf->getConfAeration()) {
+                            $confPf->getConfAeration()->getAeration()->getModele(); // Force le chargement
+                            $confPf->getConfAeration()->getPosition()->getPosition(); // Force le chargement
+                        }
                     } catch (\Doctrine\ORM\EntityNotFoundException $e) {
                         // Une entité liée n'existe plus, nettoyer la configuration
                         $this->cleanOrphanedReferences($confPf);

@@ -83,7 +83,7 @@ class ProjetRepository extends ServiceEntityRepository
      */
     public function countProjects(): int
     {
-        return $this->createQueryBuilder('p')
+        return (int) $this->createQueryBuilder('p')
             ->select('COUNT(p.id)')
             ->getQuery()
             ->getSingleScalarResult();

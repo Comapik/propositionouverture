@@ -63,7 +63,7 @@ class ClientRepository extends ServiceEntityRepository
      */
     public function countClients(): int
     {
-        return $this->createQueryBuilder('c')
+        return (int) $this->createQueryBuilder('c')
             ->select('COUNT(c.id)')
             ->getQuery()
             ->getSingleScalarResult();

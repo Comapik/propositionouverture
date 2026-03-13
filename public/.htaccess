@@ -1,11 +1,5 @@
-# Configuration pour les uploads de fichiers
-# Augmente les limites pour permettre l'upload de fichiers jusqu'à 15MB
-php_value upload_max_filesize 15M
-php_value post_max_size 20M
-php_value max_input_time 300
-php_value max_execution_time 300
-
 # Configuration pour la réécriture d'URLs de Symfony
+# Note: Les paramètres PHP (upload_max_filesize, etc.) sont maintenant dans .user.ini
 DirectoryIndex index.php
 
 <IfModule mod_negotiation.c>
