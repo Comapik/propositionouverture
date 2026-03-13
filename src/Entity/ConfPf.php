@@ -91,12 +91,6 @@ class ConfPf
     #[Assert\Length(max: 100, maxMessage: 'Le type de pose ne peut pas dépasser {{ limit }} caractères')]
     private ?string $poseType = null;
 
-    #[ORM\ManyToOne(inversedBy: 'confPfs')]
-    private ?Vitrage $vitrage = null;
-
-    #[ORM\ManyToOne(inversedBy: 'confPfs')]
-    private ?ConfAeration $confAeration = null;
-
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -324,28 +318,6 @@ class ConfPf
     public function setPoseType(?string $poseType): static
     {
         $this->poseType = $poseType;
-        return $this;
-    }
-
-    public function getVitrage(): ?Vitrage
-    {
-        return $this->vitrage;
-    }
-
-    public function setVitrage(?Vitrage $vitrage): static
-    {
-        $this->vitrage = $vitrage;
-        return $this;
-    }
-
-    public function getConfAeration(): ?ConfAeration
-    {
-        return $this->confAeration;
-    }
-
-    public function setConfAeration(?ConfAeration $confAeration): static
-    {
-        $this->confAeration = $confAeration;
         return $this;
     }
 }
