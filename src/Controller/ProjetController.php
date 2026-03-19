@@ -406,49 +406,21 @@ final class ProjetController extends AbstractController
     {
         if ($this->isCsrfTokenValid('delete' . $projet->getId(), $request->getPayload()->getString('_token'))) {
             try {
-                // Supprimer d'abord toutes les configurations liées au projet
-                
-                // Supprimer les configurations ConfPf liées
-                if ($projet->getConfPfId()) {
-                    $confPf = $this->entityManager->getRepository(\App\Entity\ConfPf::class)
-                        ->find($projet->getConfPfId());
-                    if ($confPf) {
-                        $this->entityManager->remove($confPf);
-                    }
+                // Supprimer les photos du projet
+                $photosDir = $this->getParameter('kernel.project_dir') . '/public/uploads/projets/' . $projet->getId();
+                if (is_dir($photosDir)) {
+                    // Supprimer récursivement le dossier et son contenu
+                    $this->deleteDirectory($photosDir);
                 }
                 
-                // Supprimer les configurations ConfVolet liées
-                // if ($projet->getConfVoletId()) {
-                //     $confVolet = $this->entityManager->getRepository(\App\Entity\ConfVolet::class)
-                //         ->find($projet->getConfVoletId());
-                //     if ($confVolet) {
-                //         $this->entityManager->remove($confVolet);
-                //     }
-                // }
-                
-                // Supprimer toutes les autres configurations qui pourraient référencer ce projet
-                $confPfs = $this->entityManager->getRepository(\App\Entity\ConfPf::class)
-                    ->findBy(['projet' => $projet]);
-                foreach ($confPfs as $confPf) {
-                    $this->entityManager->remove($confPf);
-                }
-                
-                // Vérifier s'il y a une entité ConfVolet
-                // try {
-                //     $confVolets = $this->entityManager->getRepository(\App\Entity\ConfVolet::class)
-                //         ->findBy(['projet' => $projet]);
-                //     foreach ($confVolets as $confVolet) {
-                //         $this->entityManager->remove($confVolet);
-                //     }
-                // } catch (\Exception $e) {
-                //     // L'entité ConfVolet n'existe peut-être pas encore
-                // }
+                // Les PDFs et configurations seront supprimés automatiquement grâce à CASCADE
+                // ProjetPdf et ConfPf sont liés avec ON DELETE CASCADE
                 
                 // Maintenant supprimer le projet lui-même
                 $this->entityManager->remove($projet);
                 $this->entityManager->flush();
 
-                $this->addFlash('success', 'Le projet et toutes ses configurations ont été supprimés avec succès.');
+                $this->addFlash('success', 'Le projet "' . $projet->getRefClient() . '" et toutes ses données associées ont été supprimés avec succès.');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erreur lors de la suppression du projet : ' . $e->getMessage());
             }
@@ -457,5 +429,23 @@ final class ProjetController extends AbstractController
         }
 
         return $this->redirectToRoute('app_projet_index');
+    }
+
+    /**
+     * Supprime récursivement un dossier et son contenu
+     */
+    private function deleteDirectory(string $dir): bool
+    {
+        if (!is_dir($dir)) {
+            return false;
+        }
+
+        $items = array_diff(scandir($dir), ['.', '..']);
+        foreach ($items as $item) {
+            $path = $dir . DIRECTORY_SEPARATOR . $item;
+            is_dir($path) ? $this->deleteDirectory($path) : unlink($path);
+        }
+
+        return rmdir($dir);
     }
 }

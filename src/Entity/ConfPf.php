@@ -28,6 +28,7 @@ class ConfPf
     private ?int $id = null;
 
     #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Assert\NotNull(message: 'Le projet est obligatoire')]
     private ?Projet $projet = null;
 
