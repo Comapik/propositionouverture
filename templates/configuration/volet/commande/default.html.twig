@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configuration Volet - {{ projet.refClient }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="alert alert-warning" role="alert">
+        <h5 class="alert-heading mb-2">Template de gamme non configure</h5>
+        <p class="mb-1">La gamme <strong>{{ gamme_selectionnee_nom }}</strong> ne dispose pas encore d'une page de configuration dediee.</p>
+        <p class="mb-0">Ajoutez un template dans <code>templates/configuration/volet/commande/</code> puis mappez-le dans le resolveur de template du controleur.</p>
+    </div>
+
+    <a href="{{ path('app_configuration_volet', {'projet': projet.id}) }}" class="btn btn-secondary">
+        Retour a la selection de gamme
+    </a>
+</div>
+{% endblock %}

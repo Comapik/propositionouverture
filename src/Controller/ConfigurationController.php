@@ -8,6 +8,7 @@ use App\Entity\Projet;
 use App\Entity\Produit;
 use App\Entity\ConfPf;
 use App\Entity\Fournisseur;
+use App\Entity\GammeVolet;
 use App\Entity\TypeFenetrePorte;
 use App\Form\ProductSelectionType;
 use App\Form\ConfPfDetailsType;
@@ -34,6 +35,13 @@ use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 #[Route('/configuration')]
 class ConfigurationController extends AbstractController
 {
+    /**
+     * Mapping nom de gamme normalise -> template de configuration commande volet.
+     */
+    private const VOLET_COMMANDE_TEMPLATE_MAP = [
+        'bloc-n-r-id4' => 'configuration/volet/commande/bloc_n_r_id4.html.twig',
+    ];
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly TypeFenetrePorteCompatibiliteService $compatibiliteService
@@ -681,10 +689,596 @@ class ConfigurationController extends AbstractController
     #[Route('/volet/{projet}', name: 'app_configuration_volet', methods: ['GET', 'POST'])]
     public function configureVolet(Projet $projet, Request $request): Response
     {
-        // TODO: Implement shutter configuration
+        if ($request->isMethod('POST')) {
+            $gammeId4 = $request->request->get('gamme_id4');
+            
+            if ($gammeId4) {
+                // Stocker la gamme en session pour la suite du processus
+                $session = $request->getSession();
+                $session->set('volet_config', [
+                    'projet_id' => $projet->getId(),
+                    'gamme_id4' => $gammeId4,
+                ]);
+
+                // Rediriger vers l'étape suivante : Commande Volet
+                return $this->redirectToRoute('app_configuration_volet_commande', [
+                    'projet' => $projet->getId(),
+                ]);
+            }
+
+            $this->addFlash('warning', 'Veuillez sélectionner une gamme iD4');
+        }
+
+        // Récupérer toutes les gammes de volets depuis la base de données
+        $gammes = $this->entityManager->getRepository(\App\Entity\GammeVolet::class)->findAll();
+
         return $this->render('configuration/volet.html.twig', [
             'projet' => $projet,
+            'gammes' => $gammes,
         ]);
+    }
+
+    #[Route('/volet/{projet}/commande', name: 'app_configuration_volet_commande', methods: ['GET', 'POST'])]
+    public function configureVoletCommande(Projet $projet, Request $request): Response
+    {
+        // Vérifier que la gamme a été sélectionnée
+        $session = $request->getSession();
+        $voletConfig = $session->get('volet_config');
+
+        if (!$voletConfig || $voletConfig['projet_id'] !== $projet->getId()) {
+            $this->addFlash('warning', 'Veuillez d\'abord sélectionner une gamme iD4');
+            return $this->redirectToRoute('app_configuration_volet', [
+                'projet' => $projet->getId(),
+            ]);
+        }
+
+        $gammeId4 = (string) $voletConfig['gamme_id4'];
+        $gammeSelectionneeNom = $gammeId4;
+        $gammeEntity = null;
+        if (preg_match('/^gamme-(\d+)$/', $gammeId4, $matches) === 1) {
+            $gammeEntity = $this->entityManager->getRepository(\App\Entity\GammeVolet::class)->find((int) $matches[1]);
+            if ($gammeEntity !== null && $gammeEntity->getNom() !== null) {
+                $gammeSelectionneeNom = $gammeEntity->getNom();
+            }
+        }
+
+        // Récupérer toutes les données de référence pour le formulaire
+        $connection = $this->entityManager->getConnection();
+
+        // --- Gestion POST : sauvegarde teinte tablier dans conf_teinte_tablier ---
+        if ($request->isMethod('POST')) {
+            $nuancierStandardId = $request->request->get('nuancier_standard_id') ?: null;
+            $tablierFaibleEmissivite = $request->request->get('tablier_faible_emissivite') ? true : false;
+            $extensionOffreActive = $request->request->get('exo') ? true : false;
+            $caissonPvcId = $request->request->get('caisson_pvc_id') ?: null;
+            $tablierId = $request->request->get('tablier_id') ?: null;
+            $teinteEncadrementElargiId = $request->request->get('teinte_encadrement_elargi_id') ?: null;
+            $teinteEncadrementSpecifiqueId = $request->request->get('teinte_encadrement_specifique_id') ?: null;
+            $nuancierStandardEncadrementId = $request->request->get('nuancier_standard_encadrement_id') ?: null;
+            $optionPackSavId = $request->request->get('option_pack_sav_id') ?: null;
+            $faceExterieureAlu = $request->request->get('face_exterieure_alu') ? true : false;
+            $optionAutreTeinte = $request->request->get('option_autre_teinte') ?: null;
+            $phtN = $request->request->get('pht_n') ? true : false;
+            $phtR = $request->request->get('pht_r') ? true : false;
+            $cmgGroupeClimatPlus = $request->request->get('cmg_groupe_climat_plus') !== null && $request->request->get('cmg_groupe_climat_plus') !== ''
+                ? (int) $request->request->get('cmg_groupe_climat_plus')
+                : null;
+            $h4cHorloge4Canaux = $request->request->get('h4c_horloge_4_canaux') ? true : false;
+            $diaIDiamant = $request->request->get('dia_idiamant') ? true : false;
+            $smuSupportMural3Boutons = $request->request->get('smu_support_mural_3_boutons') ? true : false;
+            $invAvecInverseur = $request->request->get('inv_avec_inverseur') ? true : false;
+            $lignesCommandePayload = $request->request->all('lignes');
+            if (!is_array($lignesCommandePayload)) {
+                $lignesCommandePayload = [];
+            }
+
+            // Récupérer ou créer le ConfVolet lié au projet
+            $confVolet = $projet->getConfVolet();
+            if ($confVolet === null) {
+                $confVolet = new \App\Entity\ConfVolet();
+                $confVolet->setProjet($projet);
+                if ($gammeEntity !== null) {
+                    $confVolet->setGammeVolet($gammeEntity);
+                }
+                $this->entityManager->persist($confVolet);
+                $this->entityManager->flush();
+                $projet->setConfVolet($confVolet);
+                $this->entityManager->flush();
+            }
+
+            $confVoletId = $confVolet->getId();
+
+            $connection->executeStatement(
+                'UPDATE conf_volet SET
+                    Extension_offre = :exo,
+                    caisson_pvc_id = :caisson,
+                    tablier_id = :tablier,
+                    teinte_encadrement_elargi_id = :tee,
+                    teinte_encadrement_specifique_id = :tes,
+                    nuancier_standard_encadrement_id = :nse,
+                    option_pack_sav_id = :ops,
+                    face_exterieure_alu = :fea,
+                    option_autre_teinte = :oat,
+                    pht_n = :phtn,
+                    pht_r = :phtr,
+                    cmg_groupe_climat_plus = :cmg,
+                    h4c_horloge_4_canaux = :h4c,
+                    dia_idiamant = :dia,
+                    smu_support_mural_3_boutons = :smu,
+                    inv_avec_inverseur = :inv
+                 WHERE id = :id',
+                [
+                    'exo' => $extensionOffreActive ? chr(1) : chr(0),
+                    'caisson' => $caissonPvcId !== null ? (int) $caissonPvcId : null,
+                    'tablier' => $tablierId !== null ? (int) $tablierId : null,
+                    'tee' => $teinteEncadrementElargiId !== null ? (int) $teinteEncadrementElargiId : null,
+                    'tes' => $teinteEncadrementSpecifiqueId !== null ? (int) $teinteEncadrementSpecifiqueId : null,
+                    'nse' => $nuancierStandardEncadrementId !== null ? (int) $nuancierStandardEncadrementId : null,
+                    'ops' => $optionPackSavId !== null ? (int) $optionPackSavId : null,
+                    'fea' => $faceExterieureAlu ? chr(1) : chr(0),
+                    'oat' => $optionAutreTeinte,
+                    'phtn' => $phtN ? chr(1) : chr(0),
+                    'phtr' => $phtR ? chr(1) : chr(0),
+                    'cmg' => $cmgGroupeClimatPlus,
+                    'h4c' => $h4cHorloge4Canaux ? chr(1) : chr(0),
+                    'dia' => $diaIDiamant ? chr(1) : chr(0),
+                    'smu' => $smuSupportMural3Boutons ? chr(1) : chr(0),
+                    'inv' => $invAvecInverseur ? chr(1) : chr(0),
+                    'id' => $confVoletId,
+                ]
+            );
+
+            // Upsert conf_teinte_tablier
+            $existing = $connection->fetchOne(
+                'SELECT id FROM conf_teinte_tablier WHERE conf_volet_id = :cv',
+                ['cv' => $confVoletId]
+            );
+
+            if ($existing) {
+                $connection->executeStatement(
+                    'UPDATE conf_teinte_tablier SET nuancier_standard_id = :ns, Tablier_faible_emissivite = :tfe WHERE conf_volet_id = :cv',
+                    [
+                        'ns'  => $nuancierStandardId !== null ? (int) $nuancierStandardId : null,
+                        'tfe' => $tablierFaibleEmissivite ? chr(1) : chr(0),
+                        'cv'  => $confVoletId,
+                    ]
+                );
+            } else {
+                $connection->executeStatement(
+                    'INSERT INTO conf_teinte_tablier (conf_volet_id, nuancier_standard_id, Tablier_faible_emissivite) VALUES (:cv, :ns, :tfe)',
+                    [
+                        'cv'  => $confVoletId,
+                        'ns'  => $nuancierStandardId !== null ? (int) $nuancierStandardId : null,
+                        'tfe' => $tablierFaibleEmissivite ? chr(1) : chr(0),
+                    ]
+                );
+            }
+
+            foreach ($lignesCommandePayload as $lignePayload) {
+                if (!is_array($lignePayload)) {
+                    continue;
+                }
+
+                $ligneCommandeId = isset($lignePayload['id']) && $lignePayload['id'] !== '' ? (int) $lignePayload['id'] : null;
+                $ligneCommandeData = [
+                    'Repere' => isset($lignePayload['Repere']) && $lignePayload['Repere'] !== '' ? (string) $lignePayload['Repere'] : null,
+                    'Nbre' => isset($lignePayload['Nbre']) && $lignePayload['Nbre'] !== '' ? (int) $lignePayload['Nbre'] : null,
+                    'Largeur_(LA)' => isset($lignePayload['Largeur_(LA)']) && $lignePayload['Largeur_(LA)'] !== '' ? (int) $lignePayload['Largeur_(LA)'] : null,
+                    'Hauteur_(HC)' => isset($lignePayload['Hauteur_(HC)']) && $lignePayload['Hauteur_(HC)'] !== '' ? (int) $lignePayload['Hauteur_(HC)'] : null,
+                    'AT' => isset($lignePayload['AT']) && $lignePayload['AT'] !== '' ? (int) $lignePayload['AT'] : null,
+                    'B1' => isset($lignePayload['B1']) && $lignePayload['B1'] !== '' ? (int) $lignePayload['B1'] : null,
+                    'B2' => isset($lignePayload['B2']) && $lignePayload['B2'] !== '' ? (int) $lignePayload['B2'] : null,
+                    'S1' => isset($lignePayload['S1']) && $lignePayload['S1'] !== '' ? (int) $lignePayload['S1'] : null,
+                    'S2' => isset($lignePayload['S2']) && $lignePayload['S2'] !== '' ? (int) $lignePayload['S2'] : null,
+                    'Angle' => isset($lignePayload['Angle']) && $lignePayload['Angle'] !== '' ? (int) $lignePayload['Angle'] : null,
+                    'Elargisseur_coulisse' => (($lignePayload['Elargisseur_coulisse'] ?? '0') === '1') ? chr(1) : chr(0),
+                    'Câble_longueur_utile_5m' => (($lignePayload['Câble_longueur_utile_5m'] ?? '0') === '1') ? chr(1) : chr(0),
+                    'Panneau_PV_deporte' => (($lignePayload['Panneau_PV_deporte'] ?? '0') === '1') ? chr(1) : chr(0),
+                    'type_coulisse_id' => isset($lignePayload['type_coulisse_id']) && $lignePayload['type_coulisse_id'] !== '' ? (int) $lignePayload['type_coulisse_id'] : null,
+                ];
+
+                $hasLigneCommandeData = false;
+                foreach ($ligneCommandeData as $column => $value) {
+                    if (in_array($column, ['Elargisseur_coulisse', 'Câble_longueur_utile_5m', 'Panneau_PV_deporte'], true)) {
+                        if ($value === chr(1)) {
+                            $hasLigneCommandeData = true;
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    if ($value !== null && $value !== '') {
+                        $hasLigneCommandeData = true;
+                        break;
+                    }
+                }
+
+                if (!$hasLigneCommandeData) {
+                    continue;
+                }
+
+                if ($ligneCommandeId !== null) {
+                    $connection->executeStatement(
+                        'UPDATE `Lignes_de_commande_BLOC_N_R_iD4` SET
+                            `Repere` = :repere,
+                            `Nbre` = :nbre,
+                            `Largeur_(LA)` = :largeur,
+                            `Hauteur_(HC)` = :hauteur,
+                            `AT` = :at,
+                            `B1` = :b1,
+                            `B2` = :b2,
+                            `S1` = :s1,
+                            `S2` = :s2,
+                            `Angle` = :angle,
+                            `Elargisseur_coulisse` = :elargisseur,
+                            `Câble_longueur_utile_5m` = :cable,
+                            `Panneau_PV_deporte` = :panneau,
+                            `type_coulisse_id` = :type_coulisse,
+                            `conf_volet_id` = :conf_volet
+                         WHERE id = :id AND conf_volet_id = :conf_volet',
+                        [
+                            'repere' => $ligneCommandeData['Repere'],
+                            'nbre' => $ligneCommandeData['Nbre'],
+                            'largeur' => $ligneCommandeData['Largeur_(LA)'],
+                            'hauteur' => $ligneCommandeData['Hauteur_(HC)'],
+                            'at' => $ligneCommandeData['AT'],
+                            'b1' => $ligneCommandeData['B1'],
+                            'b2' => $ligneCommandeData['B2'],
+                            's1' => $ligneCommandeData['S1'],
+                            's2' => $ligneCommandeData['S2'],
+                            'angle' => $ligneCommandeData['Angle'],
+                            'elargisseur' => $ligneCommandeData['Elargisseur_coulisse'],
+                            'cable' => $ligneCommandeData['Câble_longueur_utile_5m'],
+                            'panneau' => $ligneCommandeData['Panneau_PV_deporte'],
+                            'type_coulisse' => $ligneCommandeData['type_coulisse_id'],
+                            'conf_volet' => $confVoletId,
+                            'id' => $ligneCommandeId,
+                        ]
+                    );
+                } else {
+                    $connection->executeStatement(
+                        'INSERT INTO `Lignes_de_commande_BLOC_N_R_iD4`
+                            (`Repere`, `Nbre`, `Largeur_(LA)`, `Hauteur_(HC)`, `AT`, `B1`, `B2`, `S1`, `S2`, `Angle`, `Elargisseur_coulisse`, `Câble_longueur_utile_5m`, `Panneau_PV_deporte`, `type_coulisse_id`, `conf_volet_id`)
+                         VALUES
+                            (:repere, :nbre, :largeur, :hauteur, :at, :b1, :b2, :s1, :s2, :angle, :elargisseur, :cable, :panneau, :type_coulisse, :conf_volet)',
+                        [
+                            'repere' => $ligneCommandeData['Repere'],
+                            'nbre' => $ligneCommandeData['Nbre'],
+                            'largeur' => $ligneCommandeData['Largeur_(LA)'],
+                            'hauteur' => $ligneCommandeData['Hauteur_(HC)'],
+                            'at' => $ligneCommandeData['AT'],
+                            'b1' => $ligneCommandeData['B1'],
+                            'b2' => $ligneCommandeData['B2'],
+                            's1' => $ligneCommandeData['S1'],
+                            's2' => $ligneCommandeData['S2'],
+                            'angle' => $ligneCommandeData['Angle'],
+                            'elargisseur' => $ligneCommandeData['Elargisseur_coulisse'],
+                            'cable' => $ligneCommandeData['Câble_longueur_utile_5m'],
+                            'panneau' => $ligneCommandeData['Panneau_PV_deporte'],
+                            'type_coulisse' => $ligneCommandeData['type_coulisse_id'],
+                            'conf_volet' => $confVoletId,
+                        ]
+                    );
+                }
+            }
+
+            $this->addFlash('success', 'Configuration enregistrée.');
+            return $this->redirectToRoute('app_configuration_volet_commande', ['projet' => $projet->getId()]);
+        }
+
+        // --- Chargement données existantes conf_teinte_tablier ---
+        $confTeinteTablierExistant = null;
+        $lignesCommandeExistantes = [];
+        $confVoletData = null;
+        $confVolet = $projet->getConfVolet();
+        if ($confVolet !== null) {
+            try {
+                $confVoletData = $connection->fetchAssociative(
+                    'SELECT * FROM conf_volet WHERE id = :id',
+                    ['id' => $confVolet->getId()]
+                ) ?: null;
+            } catch (\Exception) {
+                $confVoletData = null;
+            }
+
+            try {
+                $confTeinteTablierExistant = $connection->fetchAssociative(
+                    'SELECT * FROM conf_teinte_tablier WHERE conf_volet_id = :cv',
+                    ['cv' => $confVolet->getId()]
+                ) ?: null;
+            } catch (\Exception) {
+                $confTeinteTablierExistant = null;
+            }
+
+            try {
+                $lignesCommandeExistantes = $connection->fetchAllAssociative(
+                    'SELECT * FROM `Lignes_de_commande_BLOC_N_R_iD4` WHERE conf_volet_id = :cv ORDER BY id',
+                    ['cv' => $confVolet->getId()]
+                ) ?: [];
+            } catch (\Exception) {
+                $lignesCommandeExistantes = [];
+            }
+        }
+        
+        $extensionOffreActive = false;
+        if ($confVoletData !== null) {
+            $rawExtensionOffre = $confVoletData['Extension_offre'] ?? null;
+
+            if (is_string($rawExtensionOffre)) {
+                $extensionOffreActive = $rawExtensionOffre === "\x01" || (is_numeric($rawExtensionOffre) && (int) $rawExtensionOffre === 1);
+            } elseif (is_int($rawExtensionOffre)) {
+                $extensionOffreActive = $rawExtensionOffre === 1;
+            } elseif (is_bool($rawExtensionOffre)) {
+                $extensionOffreActive = $rawExtensionOffre;
+            }
+        }
+        
+        // Caissons PVC
+        $caissons = $connection->fetchAllAssociative('SELECT * FROM Caisson_PVC ORDER BY bloc');
+
+        // Tablier
+        try {
+            $tabliers = $connection->fetchAllAssociative('SELECT * FROM Tablier ORDER BY `type`');
+        } catch (\Exception $e) {
+            $tabliers = [];
+        }
+        
+        // Teintes tablier volet
+        try {
+            $nuanciersStandard = $connection->fetchAllAssociative('SELECT * FROM nuancier_standard ORDER BY id');
+        } catch (\Exception $e) {
+            $nuanciersStandard = [];
+        }
+        
+        // Spécificités caisson
+        try {
+            $specificitesCaisson = $connection->fetchAllAssociative('SELECT * FROM Specificites_caisson ORDER BY id');
+            $binaryToBool = static function (mixed $value): bool {
+                if ($value === null) {
+                    return false;
+                }
+
+                if (is_bool($value)) {
+                    return $value;
+                }
+
+                if (is_int($value)) {
+                    return $value === 1;
+                }
+
+                if (is_string($value)) {
+                    if ($value === "\x01") {
+                        return true;
+                    }
+
+                    if ($value === "\x00" || $value === '') {
+                        return false;
+                    }
+
+                    if (is_numeric($value)) {
+                        return (int) $value === 1;
+                    }
+
+                    return ord($value[0]) === 1;
+                }
+
+                return false;
+            };
+
+            foreach ($specificitesCaisson as &$specificiteCaisson) {
+                $faceExterieureAlu = $binaryToBool($specificiteCaisson['Face_exterieure_alu'] ?? null);
+                $phtN = $binaryToBool($specificiteCaisson['PHT_N'] ?? null);
+                $phtR = $binaryToBool($specificiteCaisson['PHT_R'] ?? null);
+                $optionAutreTeinte = trim((string) ($specificiteCaisson['Option_autre_teinte'] ?? ''));
+
+                $specificiteCaisson['face_exterieure_alu_bool'] = $faceExterieureAlu;
+                $specificiteCaisson['pht_n_bool'] = $phtN;
+                $specificiteCaisson['pht_r_bool'] = $phtR;
+                $specificiteCaisson['option_autre_teinte_text'] = $optionAutreTeinte;
+
+                $specificiteCaisson['display_label'] = sprintf(
+                    'Face ext. alu: %s | Option autre teinte: %s | PHT N: %s | PHT R: %s',
+                    $faceExterieureAlu ? 'Oui' : 'Non',
+                    $optionAutreTeinte !== '' ? $optionAutreTeinte : '-',
+                    $phtN ? 'Oui' : 'Non',
+                    $phtR ? 'Oui' : 'Non'
+                );
+            }
+            unset($specificiteCaisson);
+        } catch (\Exception $e) {
+            $specificitesCaisson = [];
+        }
+        
+        // Options moteur radio Bubendorff
+        try {
+            $moteursRadio = $connection->fetchAllAssociative('SELECT * FROM Options_Moteur_Radio_Bubendorff ORDER BY id');
+            $binaryToBool = static function (mixed $value): bool {
+                if ($value === null) {
+                    return false;
+                }
+
+                if (is_bool($value)) {
+                    return $value;
+                }
+
+                if (is_int($value)) {
+                    return $value === 1;
+                }
+
+                if (is_string($value)) {
+                    if ($value === "\x01") {
+                        return true;
+                    }
+
+                    if ($value === "\x00" || $value === '') {
+                        return false;
+                    }
+
+                    if (is_numeric($value)) {
+                        return (int) $value === 1;
+                    }
+
+                    return ord($value[0]) === 1;
+                }
+
+                return false;
+            };
+
+            foreach ($moteursRadio as &$moteurRadio) {
+                $cmg = isset($moteurRadio['CMG_groupe_CLIMAT+']) ? (int) $moteurRadio['CMG_groupe_CLIMAT+'] : null;
+                $h4c = $binaryToBool($moteurRadio['H4C_Horloge_4_canaux'] ?? null);
+                $dia = $binaryToBool($moteurRadio['DIA_iDiamant'] ?? null);
+                $smu = $binaryToBool($moteurRadio['SMU_Support_mural_émetteur_3_boutons'] ?? null);
+
+                $moteurRadio['cmg_groupe_climat_plus_int'] = $cmg;
+                $moteurRadio['h4c_horloge_4_canaux_bool'] = $h4c;
+                $moteurRadio['dia_idiamant_bool'] = $dia;
+                $moteurRadio['smu_support_mural_3_boutons_bool'] = $smu;
+                $moteurRadio['display_label'] = sprintf(
+                    'CMG CLIMAT+: %s | H4C: %s | DIA: %s | SMU 3 boutons: %s',
+                    $cmg !== null ? (string) $cmg : '-',
+                    $h4c ? 'Oui' : 'Non',
+                    $dia ? 'Oui' : 'Non',
+                    $smu ? 'Oui' : 'Non'
+                );
+            }
+            unset($moteurRadio);
+        } catch (\Exception $e) {
+            $moteursRadio = [];
+        }
+        
+        // Options moteur filaire Bubendorff
+        try {
+            $moteursFilaire = $connection->fetchAllAssociative('SELECT * FROM `Option Moteur-Filaire_Bubendorff` ORDER BY id');
+            $binaryToBool = static function (mixed $value): bool {
+                if ($value === null) {
+                    return false;
+                }
+
+                if (is_bool($value)) {
+                    return $value;
+                }
+
+                if (is_int($value)) {
+                    return $value === 1;
+                }
+
+                if (is_string($value)) {
+                    if ($value === "\x01") {
+                        return true;
+                    }
+
+                    if ($value === "\x00" || $value === '') {
+                        return false;
+                    }
+
+                    if (is_numeric($value)) {
+                        return (int) $value === 1;
+                    }
+
+                    return ord($value[0]) === 1;
+                }
+
+                return false;
+            };
+
+            foreach ($moteursFilaire as &$moteurFilaire) {
+                $invAvecInverseur = $binaryToBool($moteurFilaire['INV_avec_inverseur'] ?? null);
+                $moteurFilaire['inv_avec_inverseur_bool'] = $invAvecInverseur;
+                $moteurFilaire['display_label'] = sprintf(
+                    'INV avec inverseur: %s',
+                    $invAvecInverseur ? 'Oui' : 'Non'
+                );
+            }
+            unset($moteurFilaire);
+        } catch (\Exception $e) {
+            $moteursFilaire = [];
+        }
+        
+        // Options pack SAV
+        try {
+            $packsSAV = $connection->fetchAllAssociative('SELECT * FROM Option_pack_SAV ORDER BY id');
+        } catch (\Exception $e) {
+            $packsSAV = [];
+        }
+        
+        // Lignes de commande BLOC N / R iD4
+        try {
+            $lignesCommande = $connection->fetchAllAssociative('SELECT * FROM Lignes_de_commande_BLOC_N_R_iD4 ORDER BY id');
+        } catch (\Exception $e) {
+            $lignesCommande = [];
+        }
+
+        // Types de coulisse
+        try {
+            $typesCoulisse = $connection->fetchAllAssociative('SELECT * FROM type_coulisse ORDER BY id');
+        } catch (\Exception $e) {
+            $typesCoulisse = [];
+        }
+
+        // Teinte encadrement elargi (FK de teinte_encadrement)
+        try {
+            $teinteEncadrementElargi = $connection->fetchAllAssociative('SELECT * FROM teinte_encadrement_elargi ORDER BY id');
+        } catch (\Exception $e) {
+            $teinteEncadrementElargi = [];
+        }
+
+        // Teinte encadrement specifique (FK de teinte_encadrement)
+        try {
+            $teinteEncadrementSpecifique = $connection->fetchAllAssociative('SELECT * FROM teinte_encadrement_specifique ORDER BY id');
+        } catch (\Exception $e) {
+            $teinteEncadrementSpecifique = [];
+        }
+
+        // Nuancier standard (FK de teinte_encadrement)
+        try {
+            $nuancierStandard = $connection->fetchAllAssociative('SELECT * FROM nuancier_standard ORDER BY id');
+        } catch (\Exception $e) {
+            $nuancierStandard = [];
+        }
+
+        return $this->render($this->resolveVoletCommandeTemplate($gammeEntity), [
+            'projet' => $projet,
+            'gamme_id4' => $voletConfig['gamme_id4'],
+            'gamme_selectionnee_nom' => $gammeSelectionneeNom,
+            'extension_offre_active' => $extensionOffreActive,
+            'caissons' => $caissons,
+            'tabliers' => $tabliers,
+            'nuanciers_standard' => $nuanciersStandard,
+            'teinte_encadrement_elargi' => $teinteEncadrementElargi,
+            'teinte_encadrement_specifique' => $teinteEncadrementSpecifique,
+            'nuancier_standard' => $nuancierStandard,
+            'specificites_caisson' => $specificitesCaisson,
+            'moteurs_radio' => $moteursRadio,
+            'moteurs_filaire' => $moteursFilaire,
+            'packs_sav' => $packsSAV,
+            'lignes_commande' => $lignesCommande,
+            'lignes_commande_existantes' => $lignesCommandeExistantes,
+            'conf_volet_data' => $confVoletData,
+            'types_coulisse' => $typesCoulisse,
+            'conf_teinte_tablier' => $confTeinteTablierExistant,
+        ]);
+    }
+
+    private function resolveVoletCommandeTemplate(?GammeVolet $gammeVolet): string
+    {
+        if ($gammeVolet === null || $gammeVolet->getNom() === null) {
+            return 'configuration/volet/commande/default.html.twig';
+        }
+
+        $gammeKey = $this->normalizeGammeName((string) $gammeVolet->getNom());
+
+        return self::VOLET_COMMANDE_TEMPLATE_MAP[$gammeKey] ?? 'configuration/volet/commande/default.html.twig';
+    }
+
+    private function normalizeGammeName(string $value): string
+    {
+        $asciiValue = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+        $normalized = strtolower($asciiValue !== false ? $asciiValue : $value);
+        $normalized = preg_replace('/[^a-z0-9]+/', '-', $normalized);
+
+        return trim((string) $normalized, '-');
     }
 
     /**

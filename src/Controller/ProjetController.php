@@ -165,6 +165,9 @@ final class ProjetController extends AbstractController
         
         // Récupérer la configuration ConfPf si elle existe
         $confPf = null;
+        $confVolet = null;
+        $confTeinteTablier = null;
+        $lignesCommandeVolet = [];
         $generatedPdfs = [];
         if ($projet->getConfPfId()) {
             try {
@@ -230,9 +233,64 @@ final class ProjetController extends AbstractController
             }
         }
 
+        // Récupérer la configuration ConfVolet si elle existe
+        if ($projet->getConfVoletId()) {
+            try {
+                $connection = $this->entityManager->getConnection();
+
+                $confVolet = $connection->fetchAssociative(
+                    'SELECT cv.*, 
+                            gv.nom AS gamme_volet_nom,
+                            cp.bloc AS caisson_pvc_nom,
+                            t.`type` AS tablier_nom,
+                            tee.nom AS teinte_encadrement_elargi_nom,
+                            tes.nom AS teinte_encadrement_specifique_nom,
+                            ns.nom AS nuancier_standard_encadrement_nom,
+                            ops.nom AS option_pack_sav_nom
+                     FROM conf_volet cv
+                     LEFT JOIN gamme_volet gv ON gv.id = cv.gamme_volet_id
+                     LEFT JOIN `Caisson_PVC` cp ON cp.id = cv.caisson_pvc_id
+                     LEFT JOIN `Tablier` t ON t.id = cv.tablier_id
+                     LEFT JOIN teinte_encadrement_elargi tee ON tee.id = cv.teinte_encadrement_elargi_id
+                     LEFT JOIN teinte_encadrement_specifique tes ON tes.id = cv.teinte_encadrement_specifique_id
+                     LEFT JOIN nuancier_standard ns ON ns.id = cv.nuancier_standard_encadrement_id
+                     LEFT JOIN `Option_pack_SAV` ops ON ops.id = cv.option_pack_sav_id
+                     WHERE cv.id = :id',
+                    ['id' => $projet->getConfVoletId()]
+                ) ?: null;
+
+                if ($confVolet !== null) {
+                    $confTeinteTablier = $connection->fetchAssociative(
+                        'SELECT ctt.*, ns.nom AS nuancier_standard_nom
+                         FROM conf_teinte_tablier ctt
+                         LEFT JOIN nuancier_standard ns ON ns.id = ctt.nuancier_standard_id
+                         WHERE ctt.conf_volet_id = :cv
+                         LIMIT 1',
+                        ['cv' => (int) $confVolet['id']]
+                    ) ?: null;
+
+                    $lignesCommandeVolet = $connection->fetchAllAssociative(
+                        'SELECT lc.*, tc.nom AS type_coulisse_nom
+                         FROM `Lignes_de_commande_BLOC_N_R_iD4` lc
+                         LEFT JOIN type_coulisse tc ON tc.id = lc.type_coulisse_id
+                         WHERE lc.conf_volet_id = :cv
+                         ORDER BY lc.id',
+                        ['cv' => (int) $confVolet['id']]
+                    );
+                }
+            } catch (\Exception) {
+                $confVolet = null;
+                $confTeinteTablier = null;
+                $lignesCommandeVolet = [];
+            }
+        }
+
         return $this->render('projet/show.html.twig', [
             'projet' => $projet,
             'confPf' => $confPf,
+            'confVolet' => $confVolet,
+            'confTeinteTablier' => $confTeinteTablier,
+            'lignesCommandeVolet' => $lignesCommandeVolet,
             'photos' => $photos,
             'generatedPdfs' => $generatedPdfs,
         ]);

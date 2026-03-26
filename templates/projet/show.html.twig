@@ -638,11 +638,129 @@
                                                 <span class="badge bg-success">
                                                     <i class="bi bi-check-circle"></i> Configuré (ID: {{ projet.confVoletId }})
                                                 </span>
-                                                <div class="mt-2">
-                                                    <small class="text-muted">
-                                                        <i class="bi bi-tools"></i>
-                                                        Configuration des volets en cours de développement
-                                                    </small>
+
+                                                {% if confVolet %}
+                                                    <div class="configuration-details mt-2">
+                                                        {% if confVolet.gamme_volet_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-primary">Gamme :</strong>
+                                                                <span class="badge bg-primary">{{ confVolet.gamme_volet_nom }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        <div class="mb-2">
+                                                            <strong class="text-dark">Extension offre :</strong>
+                                                            <span class="badge {{ confVolet.Extension_offre == "\x01" ? 'bg-success' : 'bg-secondary' }}">
+                                                                {{ confVolet.Extension_offre == "\x01" ? 'Oui' : 'Non' }}
+                                                            </span>
+                                                        </div>
+
+                                                        {% if confVolet.caisson_pvc_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Caisson PVC :</strong>
+                                                                <span class="badge bg-info text-dark">{{ confVolet.caisson_pvc_nom }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if confVolet.tablier_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Tablier :</strong>
+                                                                <span class="badge bg-info">{{ confVolet.tablier_nom }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if confTeinteTablier and confTeinteTablier.nuancier_standard_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Nuancier tablier :</strong>
+                                                                <span class="badge bg-secondary">{{ confTeinteTablier.nuancier_standard_nom }}</span>
+                                                                {% if confTeinteTablier.Tablier_faible_emissivite == "\x01" %}
+                                                                    <span class="badge bg-warning text-dark">Faible émissivité</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if confVolet.nuancier_standard_encadrement_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Nuancier encadrement :</strong>
+                                                                <span class="badge bg-secondary">{{ confVolet.nuancier_standard_encadrement_nom }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if confVolet.teinte_encadrement_elargi_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Teinte encadrement élargie :</strong>
+                                                                <span class="badge bg-light text-dark border">{{ confVolet.teinte_encadrement_elargi_nom }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if confVolet.teinte_encadrement_specifique_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Teinte encadrement spécifique :</strong>
+                                                                <span class="badge bg-light text-dark border">{{ confVolet.teinte_encadrement_specifique_nom }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if confVolet.option_pack_sav_nom %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Pack SAV :</strong>
+                                                                <span class="badge bg-warning text-dark">{{ confVolet.option_pack_sav_nom }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        <div class="mb-2">
+                                                            <strong class="text-dark">Options :</strong>
+                                                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                                                <span class="badge {{ confVolet.face_exterieure_alu == "\x01" ? 'bg-success' : 'bg-secondary' }}">Face ext. alu</span>
+                                                                <span class="badge {{ confVolet.pht_n == "\x01" ? 'bg-success' : 'bg-secondary' }}">PHT N</span>
+                                                                <span class="badge {{ confVolet.pht_r == "\x01" ? 'bg-success' : 'bg-secondary' }}">PHT R</span>
+                                                                <span class="badge {{ confVolet.h4c_horloge_4_canaux == "\x01" ? 'bg-success' : 'bg-secondary' }}">H4C</span>
+                                                                <span class="badge {{ confVolet.dia_idiamant == "\x01" ? 'bg-success' : 'bg-secondary' }}">DIA</span>
+                                                                <span class="badge {{ confVolet.smu_support_mural_3_boutons == "\x01" ? 'bg-success' : 'bg-secondary' }}">SMU</span>
+                                                                <span class="badge {{ confVolet.inv_avec_inverseur == "\x01" ? 'bg-success' : 'bg-secondary' }}">INV</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {% if confVolet.cmg_groupe_climat_plus is not null %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">CMG groupe CLIMAT+ :</strong>
+                                                                <span class="badge bg-dark">{{ confVolet.cmg_groupe_climat_plus }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if confVolet.option_autre_teinte %}
+                                                            <div class="mb-2">
+                                                                <strong class="text-dark">Option autre teinte :</strong>
+                                                                <span class="small text-muted">{{ confVolet.option_autre_teinte }}</span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        <div class="mb-2">
+                                                            <strong class="text-dark">Lignes de commande :</strong>
+                                                            <span class="badge bg-primary">{{ lignesCommandeVolet|length }}</span>
+                                                        </div>
+
+                                                        {% if lignesCommandeVolet|length > 0 %}
+                                                            <div class="mt-2">
+                                                                {% for ligne in lignesCommandeVolet|slice(0, 3) %}
+                                                                    <div class="small text-muted border-bottom py-1">
+                                                                        #{{ ligne.id }}
+                                                                        {% if ligne.Repere %} • {{ ligne.Repere }}{% endif %}
+                                                                        {% if ligne.Nbre is not null %} • Qté: {{ ligne.Nbre }}{% endif %}
+                                                                        {% if ligne.type_coulisse_nom %} • {{ ligne.type_coulisse_nom }}{% endif %}
+                                                                    </div>
+                                                                {% endfor %}
+                                                                {% if lignesCommandeVolet|length > 3 %}
+                                                                    <small class="text-muted">... et {{ lignesCommandeVolet|length - 3 }} autre(s)</small>
+                                                                {% endif %}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
+
+                                                <div class="mt-3">
+                                                    <a href="{{ path('app_projet_configure_volet', {projet: projet.id}) }}" class="btn btn-sm btn-outline-info">
+                                                        <i class="bi bi-pencil"></i> Modifier
+                                                    </a>
                                                 </div>
                                             {% else %}
                                                 <span class="badge bg-warning">

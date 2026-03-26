@@ -1,0 +1,208 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configuration Volets Roulants - {{ projet.refClient }}{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <!-- Formulaire de configuration -->
+            <form method="post" id="voletConfigForm">
+                <!-- Sélection de la Gamme iD4 -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="bi bi-grid-3x3-gap me-2"></i>
+                            Gamme iD4
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0 gamme-selection-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" style="width: 50px;"></th>
+                                        <th scope="col">Référence</th>
+                                        <th scope="col">Description</th>
+                                        <th scope="col" class="text-center" style="width: 100px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if gammes is defined and gammes|length > 0 %}
+                                        {% for gamme in gammes %}
+                                            {% set gammeSlug = gamme.nom|lower|replace({' ': '-', '/': '-'})|trim('-') %}
+                                            <tr class="gamme-row" data-gamme-id="gamme-{{ gamme.id }}" data-gamme-nom="{{ gamme.nom }}" style="cursor: pointer;">
+                                                <td class="text-center">
+                                                    <i class="bi bi-square text-muted selection-icon"></i>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ gamme.nom }}</strong>
+                                                </td>
+                                                <td>
+                                                    <span class="text-muted">Gamme de volets roulants iD4</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-info select-gamme-btn" data-gamme="gamme-{{ gamme.id }}">
+                                                        <i class="bi bi-check-circle me-1"></i>
+                                                        Sélectionner
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-4">
+                                                <i class="bi bi-info-circle me-2"></i>
+                                                Aucune gamme disponible pour le moment.
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-muted">
+                        <small>
+                            <i class="bi bi-info-circle me-1"></i>
+                            Sélectionnez une gamme iD4 pour continuer la configuration
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Champ caché pour stocker la sélection -->
+                <input type="hidden" name="gamme_id4" id="gamme_id4_input" value="">
+
+                <!-- Navigation -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{{ path('app_projet_show', {'id': projet.id}) }}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Retour au projet
+                    </a>
+
+                    <button type="submit" class="btn btn-info btn-lg" id="nextStepBtn" disabled>
+                        Suivant : Commande Volet
+                        <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .gamme-selection-table tbody tr:hover {
+        background-color: #e7f3ff !important;
+    }
+    
+    .gamme-row.selected {
+        background-color: #d1ecf1 !important;
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .gamme-row.selected .selection-icon {
+        color: #17a2b8 !important;
+    }
+    
+    .gamme-row.selected .select-gamme-btn {
+        background-color: #17a2b8;
+        color: white;
+        border-color: #17a2b8;
+    }
+    
+    .select-gamme-btn:hover {
+        transform: scale(1.05);
+        transition: all 0.2s ease;
+    }
+
+    #nextStepBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    #nextStepBtn:not(:disabled) {
+        box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .pulse-animation {
+        animation: pulse 0.5s ease-in-out;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gammeRows = document.querySelectorAll('.gamme-row');
+    const gammeInput = document.getElementById('gamme_id4_input');
+    const selectButtons = document.querySelectorAll('.select-gamme-btn');
+    const nextStepBtn = document.getElementById('nextStepBtn');
+
+    // Gestion du clic sur les boutons de sélection
+    selectButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const gammeId = this.getAttribute('data-gamme');
+            const row = this.closest('.gamme-row');
+            selectGamme(row, gammeId);
+        });
+    });
+
+    // Gestion du clic sur les lignes
+    gammeRows.forEach(row => {
+        row.addEventListener('click', function() {
+            const gammeId = this.getAttribute('data-gamme-id');
+            selectGamme(this, gammeId);
+        });
+    });
+
+    function selectGamme(row, gammeId) {
+        // Désélectionner toutes les lignes
+        gammeRows.forEach(r => {
+            r.classList.remove('selected');
+            const icon = r.querySelector('.selection-icon');
+            icon.classList.remove('bi-check-square-fill', 'text-info');
+            icon.classList.add('bi-square', 'text-muted');
+            
+            const btn = r.querySelector('.select-gamme-btn');
+            btn.classList.remove('btn-info');
+            btn.classList.add('btn-outline-info');
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Sélectionner';
+        });
+
+        // Sélectionner la ligne cliquée
+        row.classList.add('selected');
+        const icon = row.querySelector('.selection-icon');
+        icon.classList.remove('bi-square', 'text-muted');
+        icon.classList.add('bi-check-square-fill', 'text-info');
+        
+        const btn = row.querySelector('.select-gamme-btn');
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-info');
+        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Sélectionné';
+
+        // Mettre à jour le champ caché
+        gammeInput.value = gammeId;
+
+        // Activer le bouton "Suivant"
+        nextStepBtn.disabled = false;
+
+        // Effet visuel sur le bouton
+        nextStepBtn.classList.add('pulse-animation');
+        setTimeout(() => {
+            nextStepBtn.classList.remove('pulse-animation');
+        }, 1000);
+    }
+});
+</script>
+{% endblock %}

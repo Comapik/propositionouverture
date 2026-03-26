@@ -1,0 +1,541 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Commande Volet - {{ projet.refClient }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid mt-4 px-lg-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ path('app_projet_show', {'id': projet.id}) }}">Projet</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ path('app_configuration_volet', {'projet': projet.id}) }}">Gamme iD4</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Commande Volet</li>
+                </ol>
+            </nav>
+
+            <!-- Formulaire de commande -->
+            <form method="post" id="commandeVoletForm">
+                <div class="card mb-4">
+                    <div class="card-header text-white" style="background-color: #ee733d;">
+                        <h4 class="mb-0">
+                            <i class="bi bi-file-text me-2"></i>
+                            Commande Volet
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Informations gamme sélectionnée -->
+                        <div class="alert mb-4" style="background-color: #ee733d20; border-color: #ee733d; color: #333;">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <strong>Gamme sélectionnée :</strong> 
+                            <span class="badge ms-2" style="background-color: #ee733d;">{{ gamme_selectionnee_nom }}</span>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 1. Section : Extension Offre -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-box-arrow-up-right me-2"></i>
+                                    Extension Offre
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="exo" name="exo" value="1">
+                                            <label class="form-check-label" for="exo">
+                                                <i class="bi bi-file-earmark-plus me-1"></i>
+                                                <strong>EXO</strong> - Extension d'offre
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Cocher pour activer l'extension d'offre</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 2. Section : Caisson PVC -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-box-seam me-2"></i>
+                                    Caisson PVC
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="caisson_pvc_id" class="form-label">
+                                            <i class="bi bi-box-seam me-1"></i>
+                                            Type de Caisson PVC *
+                                        </label>
+                                        <select class="form-select" id="caisson_pvc_id" name="caisson_pvc_id" required>
+                                            <option value="">Sélectionner...</option>
+                                            {% for caisson in caissons %}
+                                                <option value="{{ caisson.id }}">{{ caisson.bloc }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Modèle du caisson PVC</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 3. Section : Tablier -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-layout-text-window-reverse me-2"></i>
+                                    Tablier
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="tablier_id" class="form-label">
+                                            <i class="bi bi-layout-text-window-reverse me-1"></i>
+                                            Type de tablier
+                                        </label>
+                                        <select class="form-select" id="tablier_id" name="tablier_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for tablier in tabliers %}
+                                                <option value="{{ tablier.id }}">{{ tablier.type }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Choix du type de tablier depuis la table Tablier</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 4. Section : Teinte Tablier -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-palette me-2"></i>
+                                    Teinte Tablier
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="teintes_tablier_volet_id" class="form-label">
+                                            <i class="bi bi-palette me-1"></i>
+                                            Teinte du tablier
+                                        </label>
+                                        <select class="form-select" id="teintes_tablier_volet_id" name="teintes_tablier_volet_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for teinte in teintes_tablier %}
+                                                <option value="{{ teinte.id }}">{{ teinte.nom }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Couleur du tablier du volet</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 4. Section : Teinte Encadrement -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-border me-2"></i>
+                                    Teinte Encadrement
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="teintes_encadrement_volet_id" class="form-label">
+                                            <i class="bi bi-border me-1"></i>
+                                            Teinte de l'encadrement
+                                        </label>
+                                        <select class="form-select" id="teintes_encadrement_volet_id" name="teintes_encadrement_volet_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for teinte in teintes_encadrement %}
+                                                <option value="{{ teinte.id }}">{{ teinte.nom }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Couleur de l'encadrement du volet</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 5. Section : Spécificités Caisson -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Spécificités Caisson
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="specificites_caisson_id" class="form-label">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Modèle de spécificité du caisson
+                                        </label>
+                                        <select class="form-select" id="specificites_caisson_id" name="specificites_caisson_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for spec in specificites_caisson %}
+                                                <option
+                                                    value="{{ spec.id }}"
+                                                    data-face-exterieure-alu="{{ spec.face_exterieure_alu_bool ? '1' : '0' }}"
+                                                    data-option-autre-teinte="{{ spec.option_autre_teinte_text|e('html_attr') }}"
+                                                    data-pht-n="{{ spec.pht_n_bool ? '1' : '0' }}"
+                                                    data-pht-r="{{ spec.pht_r_bool ? '1' : '0' }}"
+                                                >
+                                                    ID {{ spec.id }} - {{ spec.display_label|default('Spécificité disponible') }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Choisissez une spécificité pour pré-remplir les champs ci-dessous.</small>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="face_exterieure_alu" value="0">
+                                            <input class="form-check-input" type="checkbox" id="face_exterieure_alu" name="face_exterieure_alu" value="1">
+                                            <label class="form-check-label" for="face_exterieure_alu">
+                                                Face_exterieure_alu
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <label for="option_autre_teinte" class="form-label">Option_autre_teinte</label>
+                                        <input type="text" class="form-control" id="option_autre_teinte" name="option_autre_teinte" maxlength="255" placeholder="Valeur optionnelle">
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="pht_n" value="0">
+                                            <input class="form-check-input" type="checkbox" id="pht_n" name="pht_n" value="1">
+                                            <label class="form-check-label" for="pht_n">
+                                                PHT_N
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="pht_r" value="0">
+                                            <input class="form-check-input" type="checkbox" id="pht_r" name="pht_r" value="1">
+                                            <label class="form-check-label" for="pht_r">
+                                                PHT_R
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 6. Section : Options Moteur Radio Bubendorff -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-broadcast me-2"></i>
+                                    Options Moteur Radio Bubendorff
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="options_moteur_radio_bubendorff_id" class="form-label">
+                                            <i class="bi bi-broadcast me-1"></i>
+                                            Configuration moteur radio
+                                        </label>
+                                        <select class="form-select" id="options_moteur_radio_bubendorff_id" name="options_moteur_radio_bubendorff_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for moteur in moteurs_radio %}
+                                                <option
+                                                    value="{{ moteur.id }}"
+                                                    data-cmg-groupe-climat-plus="{{ moteur.cmg_groupe_climat_plus_int is not null ? moteur.cmg_groupe_climat_plus_int : '' }}"
+                                                    data-h4c-horloge-4-canaux="{{ moteur.h4c_horloge_4_canaux_bool ? '1' : '0' }}"
+                                                    data-dia-idiamant="{{ moteur.dia_idiamant_bool ? '1' : '0' }}"
+                                                    data-smu-support-mural-3-boutons="{{ moteur.smu_support_mural_3_boutons_bool ? '1' : '0' }}"
+                                                >
+                                                    {{ moteur.nom|default('Option radio #' ~ moteur.id) }} - {{ moteur.display_label|default('Réglages disponibles') }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Sélectionnez une option pour pré-remplir les champs ci-dessous.</small>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <label for="cmg_groupe_climat_plus" class="form-label">CMG_groupe_CLIMAT+</label>
+                                        <input type="number" class="form-control" id="cmg_groupe_climat_plus" name="cmg_groupe_climat_plus" min="0" step="1">
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="h4c_horloge_4_canaux" value="0">
+                                            <input class="form-check-input" type="checkbox" id="h4c_horloge_4_canaux" name="h4c_horloge_4_canaux" value="1">
+                                            <label class="form-check-label" for="h4c_horloge_4_canaux">
+                                                H4C_Horloge_4_canaux
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="dia_idiamant" value="0">
+                                            <input class="form-check-input" type="checkbox" id="dia_idiamant" name="dia_idiamant" value="1">
+                                            <label class="form-check-label" for="dia_idiamant">
+                                                DIA_iDiamant
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="smu_support_mural_3_boutons" value="0">
+                                            <input class="form-check-input" type="checkbox" id="smu_support_mural_3_boutons" name="smu_support_mural_3_boutons" value="1">
+                                            <label class="form-check-label" for="smu_support_mural_3_boutons">
+                                                SMU_Support_mural_émetteur_3_boutons
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 7. Section : Option Moteur Filaire Bubendorff -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-plug me-2"></i>
+                                    Option Moteur Filaire Bubendorff
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="option_moteur_filaire_bubendorff_id" class="form-label">
+                                            <i class="bi bi-plug me-1"></i>
+                                            Configuration moteur filaire
+                                        </label>
+                                        <select class="form-select" id="option_moteur_filaire_bubendorff_id" name="option_moteur_filaire_bubendorff_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for moteur in moteurs_filaire %}
+                                                <option
+                                                    value="{{ moteur.id }}"
+                                                    data-inv-avec-inverseur="{{ moteur.inv_avec_inverseur_bool ? '1' : '0' }}"
+                                                >
+                                                    {{ moteur.nom|default('Option filaire #' ~ moteur.id) }} - {{ moteur.display_label|default('Réglages disponibles') }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Sélectionnez une option pour pré-remplir les champs ci-dessous.</small>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="inv_avec_inverseur" value="0">
+                                            <input class="form-check-input" type="checkbox" id="inv_avec_inverseur" name="inv_avec_inverseur" value="1">
+                                            <label class="form-check-label" for="inv_avec_inverseur">
+                                                INV_avec_inverseur
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 8. Section : Option Pack SAV -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-tools me-2"></i>
+                                    Option Pack SAV
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="option_pack_sav_id" class="form-label">
+                                            <i class="bi bi-tools me-1"></i>
+                                            Pack service après-vente
+                                        </label>
+                                        <select class="form-select" id="option_pack_sav_id" name="option_pack_sav_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for pack in packs_sav %}
+                                                <option value="{{ pack.id }}">{{ pack.nom }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Options de garantie et service après-vente</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 9. Section : Lignes de Commande -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-list-check me-2"></i>
+                                    Lignes de Commande
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="lignes_de_commande_bloc_n_r_id4_id" class="form-label">
+                                            <i class="bi bi-list-check me-1"></i>
+                                            Ligne de commande BLOC N / R iD4
+                                        </label>
+                                        <select class="form-select" id="lignes_de_commande_bloc_n_r_id4_id" name="lignes_de_commande_bloc_n_r_id4_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for ligne in lignes_commande %}
+                                                <option value="{{ ligne.id }}">Ligne #{{ ligne.id }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Référence de la ligne de commande</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Champs cachés -->
+                <input type="hidden" name="gamme_id4" value="{{ gamme_id4 }}">
+
+                <!-- Navigation -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ path('app_configuration_volet', {'projet': projet.id}) }}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Retour à la sélection
+                    </a>
+
+                    <button type="submit" class="btn btn-lg text-white" style="background-color: #ee733d; border-color: #ee733d;">
+                        Enregistrer et continuer
+                        <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const specificiteSelect = document.getElementById('specificites_caisson_id');
+    const faceExterieureAlu = document.getElementById('face_exterieure_alu');
+    const optionAutreTeinte = document.getElementById('option_autre_teinte');
+    const phtN = document.getElementById('pht_n');
+    const phtR = document.getElementById('pht_r');
+    const moteurRadioSelect = document.getElementById('options_moteur_radio_bubendorff_id');
+    const cmgGroupeClimatPlus = document.getElementById('cmg_groupe_climat_plus');
+    const h4cHorloge4Canaux = document.getElementById('h4c_horloge_4_canaux');
+    const diaIDiamant = document.getElementById('dia_idiamant');
+    const smuSupportMural3Boutons = document.getElementById('smu_support_mural_3_boutons');
+    const moteurFilaireSelect = document.getElementById('option_moteur_filaire_bubendorff_id');
+    const invAvecInverseur = document.getElementById('inv_avec_inverseur');
+
+    const syncSpecificiteFields = () => {
+        if (!specificiteSelect || !faceExterieureAlu || !optionAutreTeinte || !phtN || !phtR) {
+            return;
+        }
+
+        const selectedOption = specificiteSelect.options[specificiteSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            faceExterieureAlu.checked = false;
+            optionAutreTeinte.value = '';
+            phtN.checked = false;
+            phtR.checked = false;
+            return;
+        }
+
+        faceExterieureAlu.checked = selectedOption.dataset.faceExterieureAlu === '1';
+        optionAutreTeinte.value = selectedOption.dataset.optionAutreTeinte || '';
+        phtN.checked = selectedOption.dataset.phtN === '1';
+        phtR.checked = selectedOption.dataset.phtR === '1';
+    };
+
+    const syncMoteurRadioFields = () => {
+        if (!moteurRadioSelect || !cmgGroupeClimatPlus || !h4cHorloge4Canaux || !diaIDiamant || !smuSupportMural3Boutons) {
+            return;
+        }
+
+        const selectedOption = moteurRadioSelect.options[moteurRadioSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            cmgGroupeClimatPlus.value = '';
+            h4cHorloge4Canaux.checked = false;
+            diaIDiamant.checked = false;
+            smuSupportMural3Boutons.checked = false;
+            return;
+        }
+
+        cmgGroupeClimatPlus.value = selectedOption.dataset.cmgGroupeClimatPlus || '';
+        h4cHorloge4Canaux.checked = selectedOption.dataset.h4cHorloge4Canaux === '1';
+        diaIDiamant.checked = selectedOption.dataset.diaIdiamant === '1';
+        smuSupportMural3Boutons.checked = selectedOption.dataset.smuSupportMural3Boutons === '1';
+    };
+
+    const syncMoteurFilaireFields = () => {
+        if (!moteurFilaireSelect || !invAvecInverseur) {
+            return;
+        }
+
+        const selectedOption = moteurFilaireSelect.options[moteurFilaireSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            invAvecInverseur.checked = false;
+            return;
+        }
+
+        invAvecInverseur.checked = selectedOption.dataset.invAvecInverseur === '1';
+    };
+
+    if (specificiteSelect) {
+        specificiteSelect.addEventListener('change', syncSpecificiteFields);
+        syncSpecificiteFields();
+    }
+
+    if (moteurRadioSelect) {
+        moteurRadioSelect.addEventListener('change', syncMoteurRadioFields);
+        syncMoteurRadioFields();
+    }
+
+    if (moteurFilaireSelect) {
+        moteurFilaireSelect.addEventListener('change', syncMoteurFilaireFields);
+        syncMoteurFilaireFields();
+    }
+});
+</script>
+{% endblock %}

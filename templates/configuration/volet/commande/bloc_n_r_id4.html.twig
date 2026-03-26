@@ -1,0 +1,873 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Commande Volet - {{ projet.refClient }}{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+/* ---- Custom image select : Teinte Tablier ---- */
+.custom-image-select {
+    position: relative;
+    width: 100%;
+    user-select: none;
+}
+.custom-image-select__trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 36px 6px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    min-height: 42px;
+    position: relative;
+    transition: border-color .15s;
+}
+.custom-image-select__trigger:focus {
+    outline: none;
+    border-color: #ee733d;
+    box-shadow: 0 0 0 3px rgba(238,115,61,.2);
+}
+.custom-image-select__arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: .8rem;
+    color: #6c757d;
+    pointer-events: none;
+    transition: transform .2s;
+}
+.custom-image-select.open .custom-image-select__arrow {
+    transform: translateY(-50%) rotate(180deg);
+}
+.custom-image-select__preview img,
+.custom-image-select__item-thumb {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    flex-shrink: 0;
+    display: block;
+}
+.custom-image-select__preview {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.custom-image-select__label {
+    flex: 1;
+    font-size: .9rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.custom-image-select__list {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 1000;
+    padding: 4px 0;
+    margin: 0;
+    list-style: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+.custom-image-select.open .custom-image-select__list {
+    display: block;
+}
+.custom-image-select__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: .875rem;
+    transition: background .1s;
+}
+.custom-image-select__item:hover {
+    background: #fff5f0;
+}
+.custom-image-select__item.selected {
+    background: #ee733d20;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid mt-4 px-lg-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ path('app_projet_show', {'id': projet.id}) }}">Projet</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ path('app_configuration_volet', {'projet': projet.id}) }}">Sélection gamme</a>
+                    </li>
+                    <li class="breadcrumb-item">{{ gamme_selectionnee_nom }}</li>
+                    <li class="breadcrumb-item active" aria-current="page">Commande Volet</li>
+                </ol>
+            </nav>
+
+            <!-- Formulaire de commande -->
+            <form method="post" id="commandeVoletForm">
+                <div class="card mb-4">
+                    <div class="card-header text-white" style="background-color: #ee733d;">
+                        <h4 class="mb-0">
+                            <i class="bi bi-file-text me-2"></i>
+                            Commande Volet
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Informations gamme sélectionnée -->
+                        <div class="alert mb-4" style="background-color: #ee733d20; border-color: #ee733d; color: #333;">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <strong>Gamme sélectionnée :</strong> 
+                            <span class="badge ms-2" style="background-color: #ee733d;">{{ gamme_selectionnee_nom }}</span>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 1. Section : Extension Offre -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-box-arrow-up-right me-2"></i>
+                                    Extension Offre
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="exo" name="exo" value="1" {{ extension_offre_active ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="exo">
+                                                <i class="bi bi-file-earmark-plus me-1"></i>
+                                                <strong>EXO</strong> - Extension d'offre
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Cocher pour activer l'extension d'offre</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 2. Section : Caisson PVC -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-box-seam me-2"></i>
+                                    Caisson PVC
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="caisson_pvc_id" class="form-label">
+                                            <i class="bi bi-box-seam me-1"></i>
+                                            Type de Caisson PVC *
+                                        </label>
+                                        <select class="form-select" id="caisson_pvc_id" name="caisson_pvc_id" required>
+                                            <option value="">Sélectionner...</option>
+                                            {% for caisson in caissons %}
+                                                <option value="{{ caisson.id }}" {{ conf_volet_data and conf_volet_data.caisson_pvc_id == caisson.id ? 'selected' : '' }}>{{ caisson.bloc }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Modèle du caisson PVC</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 3. Section : Tablier -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-layout-text-window-reverse me-2"></i>
+                                    Tablier
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="tablier_id" class="form-label">
+                                            <i class="bi bi-layout-text-window-reverse me-1"></i>
+                                            Type de tablier
+                                        </label>
+                                        <select class="form-select" id="tablier_id" name="tablier_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for tablier in tabliers %}
+                                                <option value="{{ tablier.id }}" {{ conf_volet_data and conf_volet_data.tablier_id == tablier.id ? 'selected' : '' }}>{{ tablier.type }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Choix du type de tablier depuis la table Tablier</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 4. Section : Teinte Tablier -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-palette me-2"></i>
+                                    Nuancier Standard Tablier
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">
+                                            <i class="bi bi-palette me-1"></i>
+                                            Nuancier standard du tablier
+                                        </label>
+                                        <!-- Champ caché transmis au formulaire -->
+                                             <input type="hidden" id="nuancier_standard_id" name="nuancier_standard_id"
+                                                 value="{{ conf_teinte_tablier.nuancier_standard_id ?? '' }}">
+                                        <!-- Menu déroulant personnalisé avec images -->
+                                        <div class="custom-image-select" id="teinte_tablier_dropdown">
+                                            <div class="custom-image-select__trigger" id="teinte_tablier_trigger" tabindex="0">
+                                                <span class="custom-image-select__preview"></span>
+                                                <span class="custom-image-select__label">Sélectionner...</span>
+                                                <span class="custom-image-select__arrow">&#9662;</span>
+                                            </div>
+                                            <ul class="custom-image-select__list" id="teinte_tablier_list">
+                                                <li class="custom-image-select__item" data-value="" data-image="">
+                                                    <span class="custom-image-select__item-thumb"></span>
+                                                    <span>Sélectionner...</span>
+                                                </li>
+                                                {% for teinte in nuanciers_standard %}
+                                                <li class="custom-image-select__item{% if conf_teinte_tablier and conf_teinte_tablier.nuancier_standard_id == teinte.id %} selected{% endif %}"
+                                                    data-value="{{ teinte.id }}" data-image="{{ teinte.image ?? '' }}">
+                                                    {% if teinte.image %}
+                                                    <img src="/{{ teinte.image }}" alt="{{ teinte.nom }}" class="custom-image-select__item-thumb">
+                                                    {% else %}
+                                                    <span class="custom-image-select__item-thumb"></span>
+                                                    {% endif %}
+                                                    <span>{{ teinte.nom }}</span>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                        {% set teinte_existante = null %}
+                                        {% if conf_teinte_tablier and conf_teinte_tablier.nuancier_standard_id %}
+                                            {% for t in nuanciers_standard %}
+                                                {% if t.id == conf_teinte_tablier.nuancier_standard_id %}
+                                                    {% set teinte_existante = t %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                        <div id="teinte_tablier_large_preview" class="mt-2" style="{{ teinte_existante ? '' : 'display:none;' }} text-align:center;">
+                                            <img id="teinte_tablier_large_img"
+                                                 src="{{ teinte_existante and teinte_existante.image ? '/' ~ teinte_existante.image : '' }}"
+                                                 alt="Aperçu nuancier standard"
+                                                 style="max-height:120px; max-width:100%; border-radius:6px; border:1px solid #dee2e6; object-fit:cover;">
+                                        </div>
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox"
+                                                   id="tablier_faible_emissivite"
+                                                   name="tablier_faible_emissivite"
+                                                   value="1"
+                                                   {{ conf_teinte_tablier and conf_teinte_tablier.Tablier_faible_emissivite == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="tablier_faible_emissivite">
+                                                Tablier faible émissivité
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Sélection du nuancier standard du tablier</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 4. Section : Teinte Encadrement -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-border me-2"></i>
+                                    Teinte Encadrement
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">
+                                                <i class="bi bi-palette me-1"></i>
+                                                Nuancier Standard
+                                            </label>
+                                            <input type="hidden" id="nuancier_standard_encadrement_id" name="nuancier_standard_encadrement_id" value="{{ conf_volet_data.nuancier_standard_encadrement_id ?? '' }}">
+                                            <div class="custom-image-select" id="nuancier_standard_dropdown">
+                                                <div class="custom-image-select__trigger" id="nuancier_standard_trigger" tabindex="0">
+                                                    <span class="custom-image-select__preview"></span>
+                                                    <span class="custom-image-select__label">Sélectionner...</span>
+                                                    <span class="custom-image-select__arrow">&#9662;</span>
+                                                </div>
+                                                <ul class="custom-image-select__list" id="nuancier_standard_list">
+                                                    <li class="custom-image-select__item" data-value="" data-image="">
+                                                        <span class="custom-image-select__item-thumb"></span>
+                                                        <span>Sélectionner...</span>
+                                                    </li>
+                                                    {% for ns in nuancier_standard %}
+                                                    <li class="custom-image-select__item{% if conf_volet_data and conf_volet_data.nuancier_standard_encadrement_id == ns.id %} selected{% endif %}" data-value="{{ ns.id }}" data-image="{{ ns.image ?? '' }}">
+                                                        {% if ns.image %}
+                                                        <img src="/{{ ns.image }}" alt="{{ ns.nom }}" class="custom-image-select__item-thumb">
+                                                        {% else %}
+                                                        <span class="custom-image-select__item-thumb"></span>
+                                                        {% endif %}
+                                                        <span>{{ ns.nom }}</span>
+                                                    </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                            <div id="nuancier_standard_large_preview" class="mt-2" style="display:none; text-align:center;">
+                                                <img id="nuancier_standard_large_img"
+                                                     src=""
+                                                     alt="Aperçu nuancier standard"
+                                                     style="max-height:120px; max-width:100%; border-radius:6px; border:1px solid #dee2e6; object-fit:cover;">
+                                            </div>
+                                            <small class="text-muted">Sélectionner le nuancier standard</small>
+                                        </div>
+
+                                        <div class="col-md-12 mb-3">
+                                            <label for="teinte_encadrement_elargi_id" class="form-label">
+                                                <i class="bi bi-border me-1"></i>
+                                                Teinte Encadrement Elargi
+                                            </label>
+                                            <select class="form-select" id="teinte_encadrement_elargi_id" name="teinte_encadrement_elargi_id">
+                                                <option value="">Sélectionner...</option>
+                                                {% for tee in teinte_encadrement_elargi %}
+                                                    <option value="{{ tee.id }}" {{ conf_volet_data and conf_volet_data.teinte_encadrement_elargi_id == tee.id ? 'selected' : '' }}>{{ tee.nom }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <small class="text-muted">Sélectionner l'encadrement élargi</small>
+                                        </div>
+
+                                        <div class="col-md-12 mb-3">
+                                            <label for="teinte_encadrement_specifique_id" class="form-label">
+                                                <i class="bi bi-border me-1"></i>
+                                                Teinte Encadrement Spécifique
+                                            </label>
+                                            <select class="form-select" id="teinte_encadrement_specifique_id" name="teinte_encadrement_specifique_id">
+                                                <option value="">Sélectionner...</option>
+                                                {% for tes in teinte_encadrement_specifique %}
+                                                    <option value="{{ tes.id }}" {{ conf_volet_data and conf_volet_data.teinte_encadrement_specifique_id == tes.id ? 'selected' : '' }}>{{ tes.nom }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <small class="text-muted">Sélectionner l'encadrement spécifique</small>
+                                        </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 5. Section : Spécificités Caisson -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Spécificités Caisson
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="face_exterieure_alu" value="0">
+                                            <input class="form-check-input" type="checkbox" id="face_exterieure_alu" name="face_exterieure_alu" value="1" {{ conf_volet_data and conf_volet_data.face_exterieure_alu == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="face_exterieure_alu">
+                                                Face_exterieure_alu
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <label for="option_autre_teinte" class="form-label">Option_autre_teinte</label>
+                                        <input type="text" class="form-control" id="option_autre_teinte" name="option_autre_teinte" maxlength="255" placeholder="Valeur optionnelle" value="{{ conf_volet_data.option_autre_teinte ?? '' }}">
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="pht_n" value="0">
+                                            <input class="form-check-input" type="checkbox" id="pht_n" name="pht_n" value="1" {{ conf_volet_data and conf_volet_data.pht_n == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="pht_n">
+                                                PHT_N
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="pht_r" value="0">
+                                            <input class="form-check-input" type="checkbox" id="pht_r" name="pht_r" value="1" {{ conf_volet_data and conf_volet_data.pht_r == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="pht_r">
+                                                PHT_R
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 6. Section : Options Moteur Radio Bubendorff -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-broadcast me-2"></i>
+                                    Options Moteur Radio Bubendorff
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-2">
+                                        <label for="cmg_groupe_climat_plus" class="form-label">CMG_groupe_CLIMAT+</label>
+                                        <input type="number" class="form-control" id="cmg_groupe_climat_plus" name="cmg_groupe_climat_plus" min="0" step="1" value="{{ conf_volet_data.cmg_groupe_climat_plus ?? '' }}">
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="h4c_horloge_4_canaux" value="0">
+                                            <input class="form-check-input" type="checkbox" id="h4c_horloge_4_canaux" name="h4c_horloge_4_canaux" value="1" {{ conf_volet_data and conf_volet_data.h4c_horloge_4_canaux == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="h4c_horloge_4_canaux">
+                                                H4C_Horloge_4_canaux
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="dia_idiamant" value="0">
+                                            <input class="form-check-input" type="checkbox" id="dia_idiamant" name="dia_idiamant" value="1" {{ conf_volet_data and conf_volet_data.dia_idiamant == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="dia_idiamant">
+                                                DIA_iDiamant
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="smu_support_mural_3_boutons" value="0">
+                                            <input class="form-check-input" type="checkbox" id="smu_support_mural_3_boutons" name="smu_support_mural_3_boutons" value="1" {{ conf_volet_data and conf_volet_data.smu_support_mural_3_boutons == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="smu_support_mural_3_boutons">
+                                                SMU_Support_mural_émetteur_3_boutons
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 7. Section : Option Moteur Filaire Bubendorff -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-plug me-2"></i>
+                                    Option Moteur Filaire Bubendorff
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input type="hidden" name="inv_avec_inverseur" value="0">
+                                            <input class="form-check-input" type="checkbox" id="inv_avec_inverseur" name="inv_avec_inverseur" value="1" {{ conf_volet_data and conf_volet_data.inv_avec_inverseur == "\x01" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="inv_avec_inverseur">
+                                                INV_avec_inverseur
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+
+                        <!-- 8. Section : Option Pack SAV -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-tools me-2"></i>
+                                    Option Pack SAV
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="option_pack_sav_id" class="form-label">
+                                            <i class="bi bi-tools me-1"></i>
+                                            Pack service après-vente
+                                        </label>
+                                        <select class="form-select" id="option_pack_sav_id" name="option_pack_sav_id">
+                                            <option value="">Sélectionner...</option>
+                                            {% for pack in packs_sav %}
+                                                <option value="{{ pack.id }}" {{ conf_volet_data and conf_volet_data.option_pack_sav_id == pack.id ? 'selected' : '' }}>{{ pack.nom }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">Options de garantie et service après-vente</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                            <div class="col-12">
+
+                        <!-- 9. Section : Lignes de Commande -->
+                        <div class="card h-100" style="border-color: #ee733d;">
+                            <div class="card-header text-white" style="background-color: #ee733d;">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-list-check me-2"></i>
+                                    Lignes de Commande
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                {% set lignes_initiales = lignes_commande_existantes is defined and lignes_commande_existantes|length > 0 ? lignes_commande_existantes : [null] %}
+                                <div id="lignes-commande-container">
+                                    {% for ligne in lignes_initiales %}
+                                    <div class="ligne-commande-item border rounded p-3 mb-3" data-index="{{ loop.index0 }}">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <strong>Ligne {{ loop.index }}</strong>
+                                            <div>
+                                                <button type="button" class="btn btn-sm btn-outline-primary dupliquer-ligne-btn">Dupliquer</button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger supprimer-ligne-btn">Supprimer</button>
+                                            </div>
+                                        </div>
+
+                                        <input type="hidden" name="lignes[{{ loop.index0 }}][id]" value="{{ ligne.id ?? '' }}">
+
+                                        <div class="row">
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">Repere</label>
+                                                <input type="text" class="form-control" name="lignes[{{ loop.index0 }}][Repere]" maxlength="255" value="{{ ligne.Repere ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">Nbre</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][Nbre]" min="0" step="1" value="{{ ligne.Nbre ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">Largeur (LA)</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][Largeur_(LA)]" min="0" step="1" value="{{ ligne is not null ? attribute(ligne, 'Largeur_(LA)') : '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">Hauteur (HC)</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][Hauteur_(HC)]" min="0" step="1" value="{{ ligne is not null ? attribute(ligne, 'Hauteur_(HC)') : '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">AT</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][AT]" min="0" step="1" value="{{ ligne.AT ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">B1</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][B1]" min="0" step="1" value="{{ ligne.B1 ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">B2</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][B2]" min="0" step="1" value="{{ ligne.B2 ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">S1</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][S1]" min="0" step="1" value="{{ ligne.S1 ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">S2</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][S2]" min="0" step="1" value="{{ ligne.S2 ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">Angle</label>
+                                                <input type="number" class="form-control" name="lignes[{{ loop.index0 }}][Angle]" step="1" value="{{ ligne.Angle ?? '' }}">
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2 d-flex align-items-end">
+                                                <div class="form-check mb-2">
+                                                    <input type="hidden" name="lignes[{{ loop.index0 }}][Elargisseur_coulisse]" value="0">
+                                                    <input class="form-check-input" type="checkbox" name="lignes[{{ loop.index0 }}][Elargisseur_coulisse]" value="1" {{ ligne and ligne.Elargisseur_coulisse == "\x01" ? 'checked' : '' }}>
+                                                    <label class="form-check-label">Elargisseur coulisse</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2 d-flex align-items-end">
+                                                <div class="form-check mb-2">
+                                                    <input type="hidden" name="lignes[{{ loop.index0 }}][Câble_longueur_utile_5m]" value="0">
+                                                    <input class="form-check-input" type="checkbox" name="lignes[{{ loop.index0 }}][Câble_longueur_utile_5m]" value="1" {{ ligne and attribute(ligne, 'Câble_longueur_utile_5m') == "\x01" ? 'checked' : '' }}>
+                                                    <label class="form-check-label">Câble longueur utile 5m</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2 d-flex align-items-end">
+                                                <div class="form-check mb-2">
+                                                    <input type="hidden" name="lignes[{{ loop.index0 }}][Panneau_PV_deporte]" value="0">
+                                                    <input class="form-check-input" type="checkbox" name="lignes[{{ loop.index0 }}][Panneau_PV_deporte]" value="1" {{ ligne and ligne.Panneau_PV_deporte == "\x01" ? 'checked' : '' }}>
+                                                    <label class="form-check-label">Panneau PV déporté</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6 col-lg mb-2">
+                                                <label class="form-label">Type coulisse</label>
+                                                <select class="form-select" name="lignes[{{ loop.index0 }}][type_coulisse_id]">
+                                                    <option value="">Sélectionner...</option>
+                                                    {% for tc in types_coulisse %}
+                                                        <option value="{{ tc.id }}" {{ ligne and ligne.type_coulisse_id == tc.id ? 'selected' : '' }}>{{ tc.nom }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <button type="button" id="ajouter-ligne-commande-btn" class="btn btn-outline-secondary btn-sm">Ajouter une ligne vide</button>
+                            </div>
+                        </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Champs cachés -->
+                <input type="hidden" name="gamme_id4" value="{{ gamme_id4 }}">
+
+                <!-- Navigation -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ path('app_configuration_volet', {'projet': projet.id}) }}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Retour à la sélection
+                    </a>
+
+                    <button type="submit" class="btn btn-lg text-white" style="background-color: #ee733d; border-color: #ee733d;">
+                        Enregistrer et continuer
+                        <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const initCustomImageSelect = ({ hiddenId, triggerId, listId, dropdownId, largePreviewId, largeImgId }) => {
+        const hiddenInput = document.getElementById(hiddenId);
+        const trigger = document.getElementById(triggerId);
+        const list = document.getElementById(listId);
+        const dropdown = document.getElementById(dropdownId);
+        const largePreview = largePreviewId ? document.getElementById(largePreviewId) : null;
+        const largeImg = largeImgId ? document.getElementById(largeImgId) : null;
+
+        if (!trigger || !list || !dropdown) {
+            return;
+        }
+
+        const previewEl = trigger.querySelector('.custom-image-select__preview');
+        const labelEl = trigger.querySelector('.custom-image-select__label');
+
+        const applySelection = (item) => {
+            const val = item.dataset.value || '';
+            const imgPath = item.dataset.image || '';
+            const label = item.querySelector('span:last-child').textContent;
+
+            if (hiddenInput) {
+                hiddenInput.value = val;
+            }
+
+            if (imgPath) {
+                previewEl.innerHTML = `<img src="/${imgPath}" alt="">`;
+            } else {
+                previewEl.innerHTML = '';
+            }
+
+            labelEl.textContent = label;
+
+            if (largePreview && largeImg) {
+                if (imgPath) {
+                    largeImg.src = '/' + imgPath;
+                    largePreview.style.display = '';
+                } else {
+                    largeImg.src = '';
+                    largePreview.style.display = 'none';
+                }
+            }
+
+            list.querySelectorAll('.custom-image-select__item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            dropdown.classList.remove('open');
+        };
+
+        const preSelectedItem = list.querySelector('.custom-image-select__item.selected');
+        if (preSelectedItem) {
+            applySelection(preSelectedItem);
+        }
+
+        trigger.addEventListener('click', () => {
+            dropdown.classList.toggle('open');
+        });
+
+        trigger.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                dropdown.classList.toggle('open');
+            }
+        });
+
+        list.querySelectorAll('.custom-image-select__item').forEach(item => {
+            item.addEventListener('click', () => {
+                applySelection(item);
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    };
+
+    initCustomImageSelect({
+        hiddenId: 'nuancier_standard_id',
+        triggerId: 'teinte_tablier_trigger',
+        listId: 'teinte_tablier_list',
+        dropdownId: 'teinte_tablier_dropdown',
+        largePreviewId: 'teinte_tablier_large_preview',
+        largeImgId: 'teinte_tablier_large_img'
+    });
+
+    initCustomImageSelect({
+        hiddenId: 'nuancier_standard_encadrement_id',
+        triggerId: 'nuancier_standard_trigger',
+        listId: 'nuancier_standard_list',
+        dropdownId: 'nuancier_standard_dropdown',
+        largePreviewId: 'nuancier_standard_large_preview',
+        largeImgId: 'nuancier_standard_large_img'
+    });
+
+    const lignesContainer = document.getElementById('lignes-commande-container');
+    const addLineButton = document.getElementById('ajouter-ligne-commande-btn');
+
+    const updateLigneIndices = () => {
+        if (!lignesContainer) {
+            return;
+        }
+
+        const lignes = lignesContainer.querySelectorAll('.ligne-commande-item');
+        lignes.forEach((ligne, index) => {
+            ligne.dataset.index = String(index);
+            const title = ligne.querySelector('strong');
+            if (title) {
+                title.textContent = `Ligne ${index + 1}`;
+            }
+
+            ligne.querySelectorAll('input, select, textarea').forEach((field) => {
+                const name = field.getAttribute('name');
+                if (!name) {
+                    return;
+                }
+
+                field.setAttribute('name', name.replace(/lignes\[\d+\]/, `lignes[${index}]`));
+            });
+        });
+    };
+
+    const cloneLigne = (sourceLigne, clearValues = false) => {
+        const cloned = sourceLigne.cloneNode(true);
+
+        const idField = cloned.querySelector('input[name$="[id]"]');
+        if (idField) {
+            idField.value = '';
+        }
+
+        if (clearValues) {
+            cloned.querySelectorAll('input, select, textarea').forEach((field) => {
+                if (field.name && field.name.endsWith('[id]')) {
+                    return;
+                }
+
+                if (field.type === 'checkbox') {
+                    field.checked = false;
+                } else if (field.tagName === 'SELECT') {
+                    field.value = '';
+                } else if (field.type !== 'hidden') {
+                    field.value = '';
+                }
+            });
+        }
+
+        return cloned;
+    };
+
+    if (lignesContainer) {
+        lignesContainer.addEventListener('click', (event) => {
+            const duplicateBtn = event.target.closest('.dupliquer-ligne-btn');
+            if (duplicateBtn) {
+                const ligne = duplicateBtn.closest('.ligne-commande-item');
+                if (ligne) {
+                    const cloned = cloneLigne(ligne, false);
+                    ligne.insertAdjacentElement('afterend', cloned);
+                    updateLigneIndices();
+                }
+                return;
+            }
+
+            const removeBtn = event.target.closest('.supprimer-ligne-btn');
+            if (removeBtn) {
+                const lignes = lignesContainer.querySelectorAll('.ligne-commande-item');
+                if (lignes.length <= 1) {
+                    return;
+                }
+
+                const ligne = removeBtn.closest('.ligne-commande-item');
+                if (ligne) {
+                    ligne.remove();
+                    updateLigneIndices();
+                }
+            }
+        });
+    }
+
+    if (addLineButton && lignesContainer) {
+        addLineButton.addEventListener('click', () => {
+            const firstLigne = lignesContainer.querySelector('.ligne-commande-item');
+            if (!firstLigne) {
+                return;
+            }
+
+            const cloned = cloneLigne(firstLigne, true);
+            lignesContainer.appendChild(cloned);
+            updateLigneIndices();
+        });
+    }
+
+    updateLigneIndices();
+});
+</script>
+{% endblock %}

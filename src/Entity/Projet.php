@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\ProjetRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -52,8 +54,20 @@ class Projet
     #[ORM\Column(nullable: true)]
     private ?int $confPfId = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?int $confVoletId = null;
+    /**
+     * @var Collection<int, ConfVolet>
+     */
+    #[ORM\OneToMany(targetEntity: ConfVolet::class, mappedBy: 'projet', cascade: ['persist', 'remove'])]
+    private Collection $confVolets;
+
+    #[ORM\OneToOne(targetEntity: ConfVolet::class)]
+    #[ORM\JoinColumn(name: 'conf_volet_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?ConfVolet $confVolet = null;
+
+    public function __construct()
+    {
+        $this->confVolets = new ArrayCollection();
+    }
 
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
@@ -134,14 +148,49 @@ class Projet
         return $this;
     }
 
-    public function getConfVoletId(): ?int
+    /**
+     * @return Collection<int, ConfVolet>
+     */
+    public function getConfVolets(): Collection
     {
-        return $this->confVoletId;
+        return $this->confVolets;
     }
 
-    public function setConfVoletId(?int $confVoletId): static
+    public function addConfVolet(ConfVolet $confVolet): static
     {
-        $this->confVoletId = $confVoletId;
+        if (!$this->confVolets->contains($confVolet)) {
+            $this->confVolets->add($confVolet);
+            $confVolet->setProjet($this);
+        }
+
+        return $this;
+    }
+
+    public function removeConfVolet(ConfVolet $confVolet): static
+    {
+        if ($this->confVolets->removeElement($confVolet)) {
+            // set the owning side to null (unless already changed)
+            if ($confVolet->getProjet() === $this) {
+                $confVolet->setProjet(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getConfVolet(): ?ConfVolet
+    {
+        return $this->confVolet;
+    }
+
+    public function getConfVoletId(): ?int
+    {
+        return $this->confVolet?->getId();
+    }
+
+    public function setConfVolet(?ConfVolet $confVolet): static
+    {
+        $this->confVolet = $confVolet;
         return $this;
     }
 
