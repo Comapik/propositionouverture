@@ -808,22 +808,22 @@ class ConfigurationController extends AbstractController
                     inv_avec_inverseur = :inv
                  WHERE id = :id',
                 [
-                    'exo' => $extensionOffreActive ? chr(1) : chr(0),
+                    'exo' => $extensionOffreActive ? 1 : 0,
                     'caisson' => $caissonPvcId !== null ? (int) $caissonPvcId : null,
                     'tablier' => $tablierId !== null ? (int) $tablierId : null,
                     'tee' => $teinteEncadrementElargiId !== null ? (int) $teinteEncadrementElargiId : null,
                     'tes' => $teinteEncadrementSpecifiqueId !== null ? (int) $teinteEncadrementSpecifiqueId : null,
                     'nse' => $nuancierStandardEncadrementId !== null ? (int) $nuancierStandardEncadrementId : null,
                     'ops' => $optionPackSavId !== null ? (int) $optionPackSavId : null,
-                    'fea' => $faceExterieureAlu ? chr(1) : chr(0),
+                    'fea' => $faceExterieureAlu ? 1 : 0,
                     'oat' => $optionAutreTeinte,
-                    'phtn' => $phtN ? chr(1) : chr(0),
-                    'phtr' => $phtR ? chr(1) : chr(0),
+                    'phtn' => $phtN ? 1 : 0,
+                    'phtr' => $phtR ? 1 : 0,
                     'cmg' => $cmgGroupeClimatPlus,
-                    'h4c' => $h4cHorloge4Canaux ? chr(1) : chr(0),
-                    'dia' => $diaIDiamant ? chr(1) : chr(0),
-                    'smu' => $smuSupportMural3Boutons ? chr(1) : chr(0),
-                    'inv' => $invAvecInverseur ? chr(1) : chr(0),
+                    'h4c' => $h4cHorloge4Canaux ? 1 : 0,
+                    'dia' => $diaIDiamant ? 1 : 0,
+                    'smu' => $smuSupportMural3Boutons ? 1 : 0,
+                    'inv' => $invAvecInverseur ? 1 : 0,
                     'id' => $confVoletId,
                 ]
             );
@@ -839,7 +839,7 @@ class ConfigurationController extends AbstractController
                     'UPDATE conf_teinte_tablier SET nuancier_standard_id = :ns, Tablier_faible_emissivite = :tfe WHERE conf_volet_id = :cv',
                     [
                         'ns'  => $nuancierStandardId !== null ? (int) $nuancierStandardId : null,
-                        'tfe' => $tablierFaibleEmissivite ? chr(1) : chr(0),
+                        'tfe' => $tablierFaibleEmissivite ? 1 : 0,
                         'cv'  => $confVoletId,
                     ]
                 );
@@ -849,7 +849,7 @@ class ConfigurationController extends AbstractController
                     [
                         'cv'  => $confVoletId,
                         'ns'  => $nuancierStandardId !== null ? (int) $nuancierStandardId : null,
-                        'tfe' => $tablierFaibleEmissivite ? chr(1) : chr(0),
+                        'tfe' => $tablierFaibleEmissivite ? 1 : 0,
                     ]
                 );
             }
@@ -871,16 +871,16 @@ class ConfigurationController extends AbstractController
                     'S1' => isset($lignePayload['S1']) && $lignePayload['S1'] !== '' ? (int) $lignePayload['S1'] : null,
                     'S2' => isset($lignePayload['S2']) && $lignePayload['S2'] !== '' ? (int) $lignePayload['S2'] : null,
                     'Angle' => isset($lignePayload['Angle']) && $lignePayload['Angle'] !== '' ? (int) $lignePayload['Angle'] : null,
-                    'Elargisseur_coulisse' => (($lignePayload['Elargisseur_coulisse'] ?? '0') === '1') ? chr(1) : chr(0),
-                    'Câble_longueur_utile_5m' => (($lignePayload['Câble_longueur_utile_5m'] ?? '0') === '1') ? chr(1) : chr(0),
-                    'Panneau_PV_deporte' => (($lignePayload['Panneau_PV_deporte'] ?? '0') === '1') ? chr(1) : chr(0),
+                    'Elargisseur_coulisse' => (($lignePayload['Elargisseur_coulisse'] ?? '0') === '1') ? 1 : 0,
+                    'Câble_longueur_utile_5m' => (($lignePayload['Câble_longueur_utile_5m'] ?? '0') === '1') ? 1 : 0,
+                    'Panneau_PV_deporte' => (($lignePayload['Panneau_PV_deporte'] ?? '0') === '1') ? 1 : 0,
                     'type_coulisse_id' => isset($lignePayload['type_coulisse_id']) && $lignePayload['type_coulisse_id'] !== '' ? (int) $lignePayload['type_coulisse_id'] : null,
                 ];
 
                 $hasLigneCommandeData = false;
                 foreach ($ligneCommandeData as $column => $value) {
                     if (in_array($column, ['Elargisseur_coulisse', 'Câble_longueur_utile_5m', 'Panneau_PV_deporte'], true)) {
-                        if ($value === chr(1)) {
+                        if ($value === 1) {
                             $hasLigneCommandeData = true;
                             break;
                         }

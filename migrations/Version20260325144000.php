@@ -23,15 +23,15 @@ final class Version20260325144000 extends AbstractMigration
             ADD COLUMN `teinte_encadrement_specifique_id` INT DEFAULT NULL,
             ADD COLUMN `nuancier_standard_encadrement_id` INT DEFAULT NULL,
             ADD COLUMN `option_pack_sav_id` INT DEFAULT NULL,
-            ADD COLUMN `face_exterieure_alu` BINARY(1) DEFAULT NULL,
+            ADD COLUMN `face_exterieure_alu` BOOLEAN DEFAULT NULL,
             ADD COLUMN `option_autre_teinte` VARCHAR(255) DEFAULT NULL,
-            ADD COLUMN `pht_n` BINARY(1) DEFAULT NULL,
-            ADD COLUMN `pht_r` BINARY(1) DEFAULT NULL,
+            ADD COLUMN `pht_n` BOOLEAN DEFAULT NULL,
+            ADD COLUMN `pht_r` BOOLEAN DEFAULT NULL,
             ADD COLUMN `cmg_groupe_climat_plus` INT DEFAULT NULL,
-            ADD COLUMN `h4c_horloge_4_canaux` BINARY(1) DEFAULT NULL,
-            ADD COLUMN `dia_idiamant` BINARY(1) DEFAULT NULL,
-            ADD COLUMN `smu_support_mural_3_boutons` BINARY(1) DEFAULT NULL,
-            ADD COLUMN `inv_avec_inverseur` BINARY(1) DEFAULT NULL');
+            ADD COLUMN `h4c_horloge_4_canaux` BOOLEAN DEFAULT NULL,
+            ADD COLUMN `dia_idiamant` BOOLEAN DEFAULT NULL,
+            ADD COLUMN `smu_support_mural_3_boutons` BOOLEAN DEFAULT NULL,
+            ADD COLUMN `inv_avec_inverseur` BOOLEAN DEFAULT NULL');
 
         $this->addSql('CREATE INDEX IDX_conf_volet_caisson_pvc ON `conf_volet` (`caisson_pvc_id`)');
         $this->addSql('CREATE INDEX IDX_conf_volet_tablier ON `conf_volet` (`tablier_id`)');
