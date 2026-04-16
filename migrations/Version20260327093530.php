@@ -19,54 +19,9 @@ final class Version20260327093530 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('DROP TABLE IF EXISTS `Option Moteur-Filaire_Bubendorff`');
-        $this->addSql('DROP TABLE IF EXISTS Option_pack_SAV');
-        $this->addSql('DROP TABLE IF EXISTS Options_Moteur_Radio_Bubendorff');
-        $this->addSql('DROP TABLE IF EXISTS Specificites_caisson');
-        $this->addSql('DROP TABLE IF EXISTS Tablier');
-        $this->addSql('DROP TABLE IF EXISTS teinte_encadrement');
-        $this->addSql('DROP TABLE IF EXISTS teinte_encadrement_elargi');
-        $this->addSql('DROP TABLE IF EXISTS teinte_encadrement_specifique');
-        $this->addSql('DROP TABLE IF EXISTS type_coulisse');
-        $this->addSql('DROP TABLE IF EXISTS Type_DEV');
-        $this->addSql('DROP INDEX IDX_AD1816C47FCF597 ON conf_pf');
-        $this->addSql('ALTER TABLE conf_pf DROP conf_aeration_id');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816CF347EFB FOREIGN KEY (produit_id) REFERENCES produits (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816CBCF5E72D FOREIGN KEY (categorie_id) REFERENCES categories (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816C365BF48 FOREIGN KEY (sous_categorie_id) REFERENCES sous_categories (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816CF892AC88 FOREIGN KEY (ouverture_id) REFERENCES ouverture (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816C670C757F FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816C346F772E FOREIGN KEY (systeme_id) REFERENCES systeme (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816CE11E2A6B FOREIGN KEY (type_fenetre_porte_id) REFERENCES type_fenetre_porte (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816CC6B2988F FOREIGN KEY (vitrage_id) REFERENCES vitrage (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816CA0555154 FOREIGN KEY (couleur_interieur_id) REFERENCES couleur (id)');
-        $this->addSql('ALTER TABLE conf_pf ADD CONSTRAINT FK_AD1816CE31C125D FOREIGN KEY (couleur_exterieur_id) REFERENCES couleur (id)');
-        $this->addSql('DROP INDEX IDX_conf_volet_caisson_pvc ON conf_volet');
-        $this->addSql('DROP INDEX IDX_conf_volet_tablier ON conf_volet');
-        $this->addSql('DROP INDEX IDX_conf_volet_teinte_elargi ON conf_volet');
-        $this->addSql('DROP INDEX IDX_conf_volet_teinte_specifique ON conf_volet');
-        $this->addSql('DROP INDEX IDX_conf_volet_nuancier_encadrement ON conf_volet');
-        $this->addSql('DROP INDEX IDX_conf_volet_pack_sav ON conf_volet');
-        $this->addSql('ALTER TABLE conf_volet DROP Extension_offre, DROP caisson_pvc_id, DROP tablier_id, DROP teinte_encadrement_elargi_id, DROP teinte_encadrement_specifique_id, DROP nuancier_standard_encadrement_id, DROP option_pack_sav_id, DROP face_exterieure_alu, DROP option_autre_teinte, DROP pht_n, DROP pht_r, DROP cmg_groupe_climat_plus, DROP h4c_horloge_4_canaux, DROP dia_idiamant, DROP smu_support_mural_3_boutons, DROP inv_avec_inverseur');
-        $this->addSql('ALTER TABLE fournisseurs ADD CONSTRAINT FK_D3EF0041F347EFB FOREIGN KEY (produit_id) REFERENCES produits (id)');
-        $this->addSql('ALTER TABLE ouverture ADD CONSTRAINT FK_43461EAB365BF48 FOREIGN KEY (sous_categorie_id) REFERENCES sous_categories (id)');
-        $this->addSql('ALTER TABLE projet_pdf ADD CONSTRAINT FK_DB2F628DF4C0BC36 FOREIGN KEY (conf_pf_id) REFERENCES conf_pf (id)');
-        $this->addSql('ALTER TABLE projet_pdf ADD CONSTRAINT FK_DB2F628D62B81754 FOREIGN KEY (pdf_schema_id) REFERENCES pdf_schema (id)');
-        $this->addSql('ALTER TABLE projets ADD CONSTRAINT FK_B454C1DB19EB6921 FOREIGN KEY (client_id) REFERENCES clients (id)');
-        $this->addSql('ALTER TABLE sous_categories ADD CONSTRAINT FK_DC8B1382F347EFB FOREIGN KEY (produit_id) REFERENCES produits (id)');
-        $this->addSql('ALTER TABLE sous_categories ADD CONSTRAINT FK_DC8B1382BCF5E72D FOREIGN KEY (categorie_id) REFERENCES categories (id)');
-        $this->addSql('ALTER TABLE systeme ADD CONSTRAINT FK_95796DE3670C757F FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs (id)');
-        $this->addSql('ALTER TABLE systeme_ouverture ADD CONSTRAINT FK_71CCBC17346F772E FOREIGN KEY (systeme_id) REFERENCES systeme (id) ON DELETE CASCADE');
-        $this->addSql('ALTER TABLE systeme_ouverture ADD CONSTRAINT FK_71CCBC17F892AC88 FOREIGN KEY (ouverture_id) REFERENCES ouverture (id) ON DELETE CASCADE');
-        $this->addSql('ALTER TABLE systeme_type_fenetre_porte ADD CONSTRAINT FK_ABFB1291346F772E FOREIGN KEY (systeme_id) REFERENCES systeme (id) ON DELETE CASCADE');
-        $this->addSql('ALTER TABLE systeme_type_fenetre_porte ADD CONSTRAINT FK_ABFB1291E11E2A6B FOREIGN KEY (type_fenetre_porte_id) REFERENCES type_fenetre_porte (id) ON DELETE CASCADE');
-        $this->addSql('ALTER TABLE type_fenetre_porte_ouverture ADD CONSTRAINT FK_2D77D34E11E2A6B FOREIGN KEY (type_fenetre_porte_id) REFERENCES type_fenetre_porte (id) ON DELETE CASCADE');
-        $this->addSql('ALTER TABLE type_fenetre_porte_ouverture ADD CONSTRAINT FK_2D77D34F892AC88 FOREIGN KEY (ouverture_id) REFERENCES ouverture (id) ON DELETE CASCADE');
-        $this->addSql('ALTER TABLE type_fenetre_porte_compatibilite ADD CONSTRAINT FK_A1FE3AFDE11E2A6B FOREIGN KEY (type_fenetre_porte_id) REFERENCES type_fenetre_porte (id)');
-        $this->addSql('ALTER TABLE type_fenetre_porte_compatibilite ADD CONSTRAINT FK_A1FE3AFDF892AC88 FOREIGN KEY (ouverture_id) REFERENCES ouverture (id)');
-        $this->addSql('ALTER TABLE type_fenetre_porte_compatibilite ADD CONSTRAINT FK_A1FE3AFD346F772E FOREIGN KEY (systeme_id) REFERENCES systeme (id)');
-        $this->addSql('ALTER TABLE user CHANGE roles roles JSON NOT NULL');
+        // Cette migration auto-générée supprimait des structures métier encore
+        // présentes dans les environnements historiques. Pour éviter les erreurs
+        // de DROP FOREIGN KEY en production, elle est désormais volontairement neutre.
     }
 
     public function down(Schema $schema): void
