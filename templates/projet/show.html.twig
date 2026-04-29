@@ -210,7 +210,7 @@
                                                 <div class="configuration-details">
                                                     {% if confPf.produit %}
                                                         <div class="mb-3">
-                                                            <strong class="text-primary">Produit :</strong>
+                                                            <strong class="text-primary">Produit :</strong><a href="{{ path('app_configuration_pf', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le produit"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="d-flex align-items-center mt-1">
                                                                 {% if confPf.produit.urlImage %}
                                                                     <div class="config-image-container me-2">
@@ -226,7 +226,7 @@
                                                     
                                                     {% if confPf.categorie %}
                                                         <div class="mb-3">
-                                                            <strong class="text-info">Catégorie :</strong>
+                                                            <strong class="text-info">Catégorie :</strong><a href="{{ path('app_configuration_pf_category', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier la catégorie"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="d-flex align-items-center mt-1">
                                                                 {% if confPf.categorie.urlImage %}
                                                                     <div class="config-image-container me-2">
@@ -242,7 +242,7 @@
                                                     
                                                     {% if confPf.sousCategorie %}
                                                         <div class="mb-3">
-                                                            <strong class="text-success">Sous-catégorie :</strong>
+                                                            <strong class="text-success">Sous-catégorie :</strong><a href="{{ path('app_configuration_pf_subcategory', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier la sous-catégorie"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="d-flex align-items-center mt-1">
                                                                 {% if confPf.sousCategorie.urlImage %}
                                                                     <div class="config-image-container me-2">
@@ -258,7 +258,7 @@
                                                     
                                                     {% if confPf.largeur or confPf.hauteur %}
                                                         <div class="mb-2">
-                                                            <strong class="text-dark">Dimensions :</strong>
+                                                            <strong class="text-dark">Dimensions :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier les dimensions"><i class="bi bi-pencil-square"></i></a>
                                                             <span class="badge bg-dark">
                                                                 {% if confPf.largeur %}{{ confPf.largeur }}{% endif %}
                                                                 {% if confPf.largeur and confPf.hauteur %} × {% endif %}
@@ -269,21 +269,21 @@
                                                     
                                                     {% if confPf.quantite %}
                                                         <div class="mb-2">
-                                                            <strong class="text-dark">Quantité :</strong>
+                                                            <strong class="text-dark">Quantité :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier la quantité"><i class="bi bi-pencil-square"></i></a>
                                                             <span class="badge bg-dark">{{ confPf.quantite }}</span>
                                                         </div>
                                                     {% endif %}
                                                     
                                                     {% if confPf.position %}
                                                         <div class="mb-2">
-                                                            <strong class="text-dark">Position :</strong>
+                                                            <strong class="text-dark">Position :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier la position"><i class="bi bi-pencil-square"></i></a>
                                                             <span class="badge bg-secondary">{{ confPf.position }}</span>
                                                         </div>
                                                     {% endif %}
                                                     
                                                     {% if confPf.ouverture %}
                                                         <div class="mb-3">
-                                                            <strong class="text-dark">Ouverture :</strong>
+                                                            <strong class="text-dark">Ouverture :</strong><a href="{{ path('app_configuration_pf_ouverture', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier l'ouverture"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="d-flex align-items-center mt-1">
                                                                 {% if confPf.ouverture.urlImage %}
                                                                     <div class="config-image-container me-2">
@@ -299,7 +299,7 @@
                                                     
                                                     {% if confPf.fournisseur %}
                                                         <div class="mb-3">
-                                                            <strong class="text-dark">Fournisseur :</strong>
+                                                            <strong class="text-dark">Fournisseur :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le fournisseur"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="d-flex align-items-center mt-1">
                                                                 {% if confPf.fournisseur.logo %}
                                                                     <div class="config-image-container me-2">
@@ -315,7 +315,7 @@
                                                     
                                     {% if confPf.systeme %}
                                         <div class="mb-3">
-                                            <strong class="text-dark">Système :</strong>
+                                            <strong class="text-dark">Système :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le système"><i class="bi bi-pencil-square"></i></a>
                                             <div class="d-flex align-items-center mt-1">
                                                 {% if confPf.systeme.urlImage %}
                                                     <div class="config-image-container me-2">
@@ -331,7 +331,7 @@
 
                                     {% if confPf.typeFenetrePorte %}
                                         <div class="mb-3">
-                                            <strong class="text-dark">Type fenêtre/porte :</strong>
+                                            <strong class="text-dark">Type fenêtre/porte :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le type"><i class="bi bi-pencil-square"></i></a>
                                             <div class="d-flex align-items-center mt-1">
                                                 <span class="badge bg-primary text-white fs-6">{{ confPf.typeFenetrePorte.nom }}</span>
                                             </div>
@@ -340,12 +340,30 @@
 
                                     {% if confPf.vitrage %}
                                         <div class="mb-2">
-                                            <strong class="text-dark">Vitrage :</strong>
+                                            <strong class="text-dark">Vitrage :</strong><a href="{{ path('app_configuration_pf_orientation', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le vitrage"><i class="bi bi-pencil-square"></i></a>
                                             <span class="badge bg-success text-white">
                                                 {{ confPf.vitrage.type }}
                                                 {% if confPf.vitrage.rw %} - Rw:{{ confPf.vitrage.rw }}{% endif %}
                                                 {% if confPf.vitrage.epaisseur %} - Ép:{{ confPf.vitrage.epaisseur }}{% endif %}
                                             </span>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if confPf.sensOuverture %}
+                                        <div class="mb-2">
+                                            <strong class="text-dark">Sens d'ouverture :</strong><a href="{{ path('app_configuration_pf_orientation', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le sens d'ouverture"><i class="bi bi-pencil-square"></i></a>
+                                            <span class="badge bg-secondary">
+                                                {% if confPf.sensOuverture == 'int' %}Ouverture vers l'intérieur
+                                                {% elseif confPf.sensOuverture == 'ext' %}Ouverture vers l'extérieur
+                                                {% else %}{{ confPf.sensOuverture }}{% endif %}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if confPf.poseType %}
+                                        <div class="mb-2">
+                                            <strong class="text-dark">Type de pose :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le type de pose"><i class="bi bi-pencil-square"></i></a>
+                                            <span class="badge bg-secondary">{{ confPf.poseType }}</span>
                                         </div>
                                     {% endif %}
 
@@ -361,7 +379,7 @@
 
                                                     {% if confPf.notes %}
                                                         <div class="mb-2">
-                                                            <strong class="text-muted">Notes :</strong>
+                                                            <strong class="text-muted">Notes :</strong><a href="{{ path('app_configuration_pf_details', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier les notes"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="small text-muted">{{ confPf.notes|slice(0, 100) }}{% if confPf.notes|length > 100 %}...{% endif %}</div>
                                                         </div>
                                                     {% endif %}
@@ -369,7 +387,7 @@
                                                     {# Affichage des couleurs #}
                                                     {% if confPf.couleurInterieur or confPf.couleurExterieur %}
                                                         <div class="mb-3">
-                                                            <strong class="text-dark">Couleurs :</strong>
+                                                            <strong class="text-dark">Couleurs :</strong><a href="{{ path('app_configuration_pf_couleurs', {projet: projet.id, confpf: confPf.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier les couleurs"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="row mt-2">
                                                                 {% if confPf.couleurInterieur %}
                                                                     <div class="col-6">
@@ -643,13 +661,13 @@
                                                     <div class="configuration-details mt-2">
                                                         {% if confVolet.gamme_volet_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-primary">Gamme :</strong>
+                                                                <strong class="text-primary">Gamme :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier la gamme"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-primary">{{ confVolet.gamme_volet_nom }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         <div class="mb-2">
-                                                            <strong class="text-dark">Extension offre :</strong>
+                                                            <strong class="text-dark">Extension offre :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier"><i class="bi bi-pencil-square"></i></a>
                                                             <span class="badge {{ confVolet.Extension_offre == "\x01" ? 'bg-success' : 'bg-secondary' }}">
                                                                 {{ confVolet.Extension_offre == "\x01" ? 'Oui' : 'Non' }}
                                                             </span>
@@ -657,21 +675,21 @@
 
                                                         {% if confVolet.caisson_pvc_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Caisson PVC :</strong>
+                                                                <strong class="text-dark">Caisson PVC :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le caisson PVC"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-info text-dark">{{ confVolet.caisson_pvc_nom }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         {% if confVolet.tablier_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Tablier :</strong>
+                                                                <strong class="text-dark">Tablier :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le tablier"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-info">{{ confVolet.tablier_nom }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         {% if confTeinteTablier and confTeinteTablier.nuancier_standard_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Nuancier tablier :</strong>
+                                                                <strong class="text-dark">Nuancier tablier :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier la teinte tablier"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-secondary">{{ confTeinteTablier.nuancier_standard_nom }}</span>
                                                                 {% if confTeinteTablier.Tablier_faible_emissivite == "\x01" %}
                                                                     <span class="badge bg-warning text-dark">Faible émissivité</span>
@@ -681,34 +699,34 @@
 
                                                         {% if confVolet.nuancier_standard_encadrement_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Nuancier encadrement :</strong>
+                                                                <strong class="text-dark">Nuancier encadrement :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le nuancier encadrement"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-secondary">{{ confVolet.nuancier_standard_encadrement_nom }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         {% if confVolet.teinte_encadrement_elargi_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Teinte encadrement élargie :</strong>
+                                                                <strong class="text-dark">Teinte encadrement élargie :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-light text-dark border">{{ confVolet.teinte_encadrement_elargi_nom }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         {% if confVolet.teinte_encadrement_specifique_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Teinte encadrement spécifique :</strong>
+                                                                <strong class="text-dark">Teinte encadrement spécifique :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-light text-dark border">{{ confVolet.teinte_encadrement_specifique_nom }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         {% if confVolet.option_pack_sav_nom %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Pack SAV :</strong>
+                                                                <strong class="text-dark">Pack SAV :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier le pack SAV"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-warning text-dark">{{ confVolet.option_pack_sav_nom }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         <div class="mb-2">
-                                                            <strong class="text-dark">Options :</strong>
+                                                            <strong class="text-dark">Options :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier les options"><i class="bi bi-pencil-square"></i></a>
                                                             <div class="mt-1 d-flex flex-wrap gap-1">
                                                                 <span class="badge {{ confVolet.face_exterieure_alu == "\x01" ? 'bg-success' : 'bg-secondary' }}">Face ext. alu</span>
                                                                 <span class="badge {{ confVolet.pht_n == "\x01" ? 'bg-success' : 'bg-secondary' }}">PHT N</span>
@@ -722,20 +740,20 @@
 
                                                         {% if confVolet.cmg_groupe_climat_plus is not null %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">CMG groupe CLIMAT+ :</strong>
+                                                                <strong class="text-dark">CMG groupe CLIMAT+ :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="badge bg-dark">{{ confVolet.cmg_groupe_climat_plus }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         {% if confVolet.option_autre_teinte %}
                                                             <div class="mb-2">
-                                                                <strong class="text-dark">Option autre teinte :</strong>
+                                                                <strong class="text-dark">Option autre teinte :</strong><a href="{{ path('app_configuration_volet', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier"><i class="bi bi-pencil-square"></i></a>
                                                                 <span class="small text-muted">{{ confVolet.option_autre_teinte }}</span>
                                                             </div>
                                                         {% endif %}
 
                                                         <div class="mb-2">
-                                                            <strong class="text-dark">Lignes de commande :</strong>
+                                                            <strong class="text-dark">Lignes de commande :</strong><a href="{{ path('app_configuration_volet_commande', {projet: projet.id}) }}" class="btn btn-outline-secondary btn-sm py-0 px-1 float-end" title="Modifier les lignes de commande"><i class="bi bi-pencil-square"></i></a>
                                                             <span class="badge bg-primary">{{ lignesCommandeVolet|length }}</span>
                                                         </div>
 

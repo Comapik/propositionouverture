@@ -115,9 +115,6 @@
                                                         <i class="bi bi-copy"></i>
                                                     </button>
                                                 </form>
-                                                <a href="{{ path('app_projet_edit', {id: projet.id}) }}" class="btn btn-outline-warning" title="Modifier">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
                                                 <form method="post" action="{{ path('app_projet_delete', {id: projet.id}) }}" class="d-inline" onsubmit="return confirmDelete('{{ projet.refClient|e('js') }}')">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ projet.id) }}">
                                                     <button class="btn btn-outline-danger" type="submit" title="Supprimer">
@@ -216,9 +213,6 @@
                                                 <i class="bi bi-copy"></i> Dupliquer
                                             </button>
                                         </form>
-                                        <a href="{{ path('app_projet_edit', {id: projet.id}) }}" class="btn btn-warning btn-sm">
-                                            <i class="bi bi-pencil"></i> Modifier
-                                        </a>
                                         <form method="post" action="{{ path('app_projet_delete', {id: projet.id}) }}" class="d-inline" onsubmit="return confirmDelete('{{ projet.refClient|e('js') }}')">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ projet.id) }}">
                                             <button class="btn btn-danger btn-sm" type="submit">
