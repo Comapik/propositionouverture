@@ -19,13 +19,14 @@ final class Version20260326145648 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // Keep this migration idempotent: the dropped objects may already be absent
-        // because older executed migrations are missing from the repository.
-        $this->addSql('CREATE TABLE IF NOT EXISTS Type_DEV (id INT AUTO_INCREMENT NOT NULL, type VARCHAR(255) NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
+        // Migration historique neutralisée : elle provenait d'un diff auto-généré
+        // d'un état intermédiaire du schéma et ne doit plus rien modifier.
     }
 
     public function down(Schema $schema): void
     {
+        $this->throwIrreversibleMigration('Migration historique neutralisée.');
+
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE TABLE aeration (id INT AUTO_INCREMENT NOT NULL, modele VARCHAR(100) CHARACTER SET utf8mb4 NOT NULL COLLATE `utf8mb4_unicode_ci`, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB COMMENT = \'\' ');
         $this->addSql('CREATE TABLE Caisson_PVC (id INT AUTO_INCREMENT NOT NULL, bloc VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULL COLLATE `utf8mb4_unicode_ci`, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB COMMENT = \'\' ');

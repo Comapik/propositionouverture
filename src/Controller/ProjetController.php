@@ -459,6 +459,118 @@ final class ProjetController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/dupliquer', name: 'app_projet_duplicate', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function duplicate(Request $request, Projet $projet): Response
+    {
+        if (!$this->isCsrfTokenValid('duplicate' . $projet->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('app_projet_index');
+        }
+
+        // 1. Nouveau projet avec les champs de base
+        $copie = new Projet();
+        $copie->setClient($projet->getClient());
+        $copie->setRefClient($projet->getRefClient() . ' - Copie');
+        $copie->setLieu($projet->getLieu());
+        $copie->setDescription($projet->getDescription());
+
+        $this->entityManager->persist($copie);
+        $this->entityManager->flush(); // flush pour avoir l'ID du nouveau projet
+
+        // 2. Copier la configuration ConfPf si elle existe
+        if ($projet->getConfPfId()) {
+            $confPf = $this->entityManager->getRepository(\App\Entity\ConfPf::class)->find($projet->getConfPfId());
+            if ($confPf) {
+                $nouvConfPf = new \App\Entity\ConfPf();
+                $nouvConfPf->setProjet($copie);
+                $nouvConfPf->setProduit($confPf->getProduit());
+                $nouvConfPf->setCategorie($confPf->getCategorie());
+                $nouvConfPf->setSousCategorie($confPf->getSousCategorie());
+                $nouvConfPf->setOuverture($confPf->getOuverture());
+                $nouvConfPf->setFournisseur($confPf->getFournisseur());
+                $nouvConfPf->setSysteme($confPf->getSysteme());
+                $nouvConfPf->setTypeFenetrePorte($confPf->getTypeFenetrePorte());
+                $nouvConfPf->setVitrage($confPf->getVitrage());
+                $nouvConfPf->setSensOuverture($confPf->getSensOuverture());
+                $nouvConfPf->setCouleurInterieur($confPf->getCouleurInterieur());
+                $nouvConfPf->setCouleurExterieur($confPf->getCouleurExterieur());
+                $nouvConfPf->setLargeur($confPf->getLargeur());
+                $nouvConfPf->setHauteur($confPf->getHauteur());
+                $nouvConfPf->setQuantite($confPf->getQuantite());
+                $nouvConfPf->setNotes($confPf->getNotes());
+                $nouvConfPf->setPosition($confPf->getPosition());
+                $nouvConfPf->setPoseType($confPf->getPoseType());
+
+                $this->entityManager->persist($nouvConfPf);
+                $this->entityManager->flush();
+
+                $copie->setConfPfId($nouvConfPf->getId());
+                $this->entityManager->flush();
+            }
+        }
+
+        // 3. Copier la configuration ConfVolet si elle existe
+        $confVolet = $projet->getConfVolet();
+        if ($confVolet) {
+            $nouvConfVolet = new \App\Entity\ConfVolet();
+            $nouvConfVolet->setProjet($copie);
+            $nouvConfVolet->setGammeVolet($confVolet->getGammeVolet());
+            $nouvConfVolet->setCaissonPvc($confVolet->getCaissonPvc());
+            $nouvConfVolet->setTablier($confVolet->getTablier());
+            $nouvConfVolet->setTeinteEncadrementElargi($confVolet->getTeinteEncadrementElargi());
+            $nouvConfVolet->setTeinteEncadrementSpecifique($confVolet->getTeinteEncadrementSpecifique());
+            $nouvConfVolet->setNuancierStandardEncadrement($confVolet->getNuancierStandardEncadrement());
+            $nouvConfVolet->setOptionPackSav($confVolet->getOptionPackSav());
+            $nouvConfVolet->setNom($confVolet->getNom());
+            $nouvConfVolet->setOptionAutreTeinte($confVolet->getOptionAutreTeinte());
+            $nouvConfVolet->setCmgGroupeClimatPlus($confVolet->getCmgGroupeClimatPlus());
+            $nouvConfVolet->setExtensionOffre($confVolet->getExtensionOffre());
+            $nouvConfVolet->setFaceExterieureAlu($confVolet->getFaceExterieureAlu());
+            $nouvConfVolet->setPhtN($confVolet->getPhtN());
+            $nouvConfVolet->setPhtR($confVolet->getPhtR());
+            $nouvConfVolet->setH4cHorloge4Canaux($confVolet->getH4cHorloge4Canaux());
+            $nouvConfVolet->setDiaIdiamant($confVolet->getDiaIdiamant());
+            $nouvConfVolet->setSmuSupportMural3Boutons($confVolet->getSmuSupportMural3Boutons());
+            $nouvConfVolet->setInvAvecInverseur($confVolet->getInvAvecInverseur());
+
+            $this->entityManager->persist($nouvConfVolet);
+            $this->entityManager->flush(); // flush pour avoir l'ID du nouveau confVolet
+
+            // 3a. Copier la teinte tablier (conf_teinte_tablier)
+            $confTeinteTablier = $this->entityManager->getRepository(\App\Entity\ConfTeinteTablier::class)
+                ->findOneBy(['confVolet' => $confVolet]);
+            if ($confTeinteTablier) {
+                $nouvCtt = new \App\Entity\ConfTeinteTablier();
+                $nouvCtt->setConfVolet($nouvConfVolet);
+                $nouvCtt->setNuancierStandard($confTeinteTablier->getNuancierStandard());
+                $nouvCtt->setTablierFaibleEmissivite($confTeinteTablier->isTablierFaibleEmissivite());
+                $this->entityManager->persist($nouvCtt);
+            }
+
+            // 3b. Copier les lignes de commande (Lignes_de_commande_BLOC_N_R_iD4) via SQL direct
+            $connection = $this->entityManager->getConnection();
+            $connection->executeStatement(
+                'INSERT INTO `Lignes_de_commande_BLOC_N_R_iD4`
+                    (conf_volet_id, type_coulisse_id, `Nbre`, `Largeur_(LA)`, `Hauteur_(HC)`,
+                     `AT`, `B1`, `B2`, `S1`, `S2`, `Repere`, `Angle`,
+                     `Elargisseur_coulisse`, `Câble_longueur_utile_5m`, `Panneau_PV_deporte`)
+                 SELECT :new_cv, type_coulisse_id, `Nbre`, `Largeur_(LA)`, `Hauteur_(HC)`,
+                     `AT`, `B1`, `B2`, `S1`, `S2`, `Repere`, `Angle`,
+                     `Elargisseur_coulisse`, `Câble_longueur_utile_5m`, `Panneau_PV_deporte`
+                 FROM `Lignes_de_commande_BLOC_N_R_iD4`
+                 WHERE conf_volet_id = :old_cv',
+                ['new_cv' => $nouvConfVolet->getId(), 'old_cv' => $confVolet->getId()]
+            );
+
+            $copie->setConfVolet($nouvConfVolet);
+            $this->entityManager->flush();
+        }
+
+        $this->addFlash('success', 'Le projet "' . $projet->getRefClient() . '" a été dupliqué avec succès.');
+
+        return $this->redirectToRoute('app_projet_show', ['id' => $copie->getId()]);
+    }
+
     #[Route('/{id}/supprimer', name: 'app_projet_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function delete(Request $request, Projet $projet): Response
     {

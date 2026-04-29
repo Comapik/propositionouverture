@@ -26,6 +26,8 @@ final class Version20260327093530 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
+        $this->throwIrreversibleMigration('Migration historique neutralisée.');
+
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE TABLE Option Moteur-Filaire_Bubendorff (id INT AUTO_INCREMENT NOT NULL, INV_avec_inverseur BINARY(1) DEFAULT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB COMMENT = \'\' ');
         $this->addSql('CREATE TABLE Option_pack_SAV (id INT AUTO_INCREMENT NOT NULL, nom VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULL COLLATE `utf8mb4_unicode_ci`, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB COMMENT = \'\' ');

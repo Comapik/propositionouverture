@@ -109,6 +109,12 @@
                                                 <a href="{{ path('app_projet_show', {id: projet.id}) }}" class="btn btn-outline-info" title="Voir">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
+                                                <form method="post" action="{{ path('app_projet_duplicate', {id: projet.id}) }}" class="d-inline">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('duplicate' ~ projet.id) }}">
+                                                    <button class="btn btn-outline-secondary" type="submit" title="Dupliquer">
+                                                        <i class="bi bi-copy"></i>
+                                                    </button>
+                                                </form>
                                                 <a href="{{ path('app_projet_edit', {id: projet.id}) }}" class="btn btn-outline-warning" title="Modifier">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
@@ -204,6 +210,12 @@
                                         <a href="{{ path('app_projet_show', {id: projet.id}) }}" class="btn btn-info btn-sm">
                                             <i class="bi bi-eye"></i> Voir
                                         </a>
+                                        <form method="post" action="{{ path('app_projet_duplicate', {id: projet.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('duplicate' ~ projet.id) }}">
+                                            <button class="btn btn-secondary btn-sm" type="submit">
+                                                <i class="bi bi-copy"></i> Dupliquer
+                                            </button>
+                                        </form>
                                         <a href="{{ path('app_projet_edit', {id: projet.id}) }}" class="btn btn-warning btn-sm">
                                             <i class="bi bi-pencil"></i> Modifier
                                         </a>
